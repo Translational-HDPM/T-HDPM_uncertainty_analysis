@@ -3,15 +3,14 @@ Plotting functions for Monte Carlo simulations
 """
 
 from typing import Sequence
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
-from src.classifier import (
-    sample_single_patient,
-    antilogit_classifier_score,
-    linear_classifier_score,
-)
+import seaborn as sns
+
+from src.classifier import (antilogit_classifier_score,
+                            linear_classifier_score, sample_single_patient)
 
 sns.set_style("ticks")
 
@@ -34,7 +33,8 @@ def plot_uncertainty_at_threshold(
     Outputs:
 
         Scatter plot displaying simulation classifier scores against subject scores.
-        Classification of outcomes as False Positives (FP), False Negatives (FN), True Positives (TP), and True Negatives (TN).
+        Classification of outcomes as False Positives (FP), False Negatives (FN), 
+        True Positives (TP), and True Negatives (TN).
 
     Pseudocode:
 
@@ -43,9 +43,11 @@ def plot_uncertainty_at_threshold(
 
       2. Compute Subject Scores:
             For each subject:
-            a. Linear Score Calculation: Compute linear scores by multiplying the z-scores (from z_scores_df) by a coefficient.
+            a. Linear Score Calculation: Compute linear scores by multiplying the z-scores 
+            (from z_scores_df) by a coefficient.
                 Function: linear_classifier_score.
-                b. Classifier Score Calculation: Convert linear scores to classifier scores using an anti-logit operation.
+                b. Classifier Score Calculation: Convert linear scores to classifier scores
+                    using an anti-logit operation.
                 Function: antilogit_classifier_score.
 
       3. Compute Simulation Scores:
@@ -60,21 +62,25 @@ def plot_uncertainty_at_threshold(
 
       5. Classify Simulation Outcomes:
             For each simulation score for each subject (iterate num_runs times):
-                Use the threshold to classify outcomes into FP, FN, TP, and TN using conditional statements.
+                Use the threshold to classify outcomes into FP, FN, TP, and TN using 
+                conditional statements.
 
       6. Calculate Accuracy Metrics:
-            Based on the FP, FN, TP, and TN classifications, calculate accuracy measures for each subject.
+            Based on the FP, FN, TP, and TN classifications, calculate accuracy measures for
+            each subject.
 
       7. Repeat Process for All Subjects:
             Repeat steps 2–6 for each subject.
 
       8. Generate Scatter Plot:
             Plot simulation scores (y-axis) against subject scores (x-axis).
-            Add two perpendicular threshold lines on the plot (one on the x-axis and one on the y-axis) to categorize scatter dots into FP, FN, TP, and TN.
+            Add two perpendicular threshold lines on the plot (one on the x-axis and one on the y-axis) to categorize scatter dots 
+            into FP, FN, TP, and TN.
     """
 
     false_pos = false_neg = 0
-    num_subj_unreliable = 0  # keeps track of subjects whose score is unreliable under the assumed variation
+    # keeps track of subjects whose score is unreliable under the assumed variation
+    num_subj_unreliable = 0  
 
     plt.figure(figsize=(10, 10))
     for i in range(num_patients):
@@ -127,8 +133,9 @@ def plot_v_plot(
 
     Outputs:
 
-        Subject accuracy based on the number of simulations, stored in a DataFrame: accuracy_df.
-        True Positives (TP), True Negatives (TN), False Positives (FP), and False Negatives (FN) classifications, stored in a DataFrame: false_pos_df.
+        Subject accuracy based on the number of simulations, stored in a DataFrame: 
+        accuracy_df. True Positives (TP), True Negatives (TN), False Positives (FP), 
+        and False Negatives (FN) classifications, stored in a DataFrame: false_pos_df.
 
     Pseudocode:
 

@@ -4,6 +4,7 @@ Functions to draw random samples from specific probability distributions.
 
 import numpy as np
 
+
 def sample_poisson(lambda_p: float, shape: tuple[int, int]) -> np.ndarray:
     """Generates random samples of given shape from a Poisson distribution."""
     return np.random.poisson(lam=lambda_p, size=shape)
@@ -27,7 +28,7 @@ def sample_zero_inflated_negative_binomial(r: float, p: float, pi_zinb: float, s
     return res
 
 def sample_poisson_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> np.ndarray:
-    """
+    r"""
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from a Poisson distribution corresponding to these.
     For a Poisson distribution the relative uncertainty (i.e. the standard deviation divided by the mean) is
 
@@ -49,7 +50,7 @@ def sample_poisson_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> np.n
     return mu * (rel_u ** 2) * np.random.poisson(lam=1 / rel_u**2.0, size=n_points)
 
 def sample_zero_inflated_poisson_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> np.ndarray:
-    """
+    r"""
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from a zero-inflated
     Poisson distribution corresponding to these.
     For a ZIP model, the probability mass function is
@@ -103,7 +104,7 @@ def sample_zero_inflated_poisson_mean_rsd(mu: int, rel_u: float, n_points: int =
     return res
 
 def sample_negative_binomial_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> np.ndarray:
-    """
+    r"""
     Given a mean ($X$) and uncertainty % (relative standard deviation) $k$, sample from a negative binomial distribution corresponding to these.
     For a negative binomial distribution $NB(r, p)$ parametrized by $r$ (number of successes until the experiment is stopped) and $p$ 
     (success probability in each experiment), mean $\mu$ and standard deviation $\sigma$ are given by
@@ -155,7 +156,7 @@ def sample_negative_binomial_mean_rsd(mu: int, rel_u: float, n_points: int = 100
     return np.random.negative_binomial(r, p, size=n_points)
 
 def sample_zero_inflated_negative_binomial_mean_rsd(mu: int, rel_u: float, pi_zinb: float, n_points: int = 1000) -> np.ndarray:
-    """
+    r"""
     Given a mean ($X$) and uncertainty % (relative standard deviation) $k$, sample from a zero-inflated
     negative binomial distribution corresponding to these.
     We use a similar parametrization as the negative binomial distribution above with the added parameter of $\pi$. 

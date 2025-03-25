@@ -1,10 +1,11 @@
 """
 Functions for post-processing (visualization and downstream analysis) of simulation results.
 """
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
+
 
 def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str]) -> None:
     """
@@ -21,24 +22,33 @@ def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str]) -> None:
     plt.ylabel("True", fontsize=24)
     plt.show()
 
-def display_differential_classification_results_one_threshold(*, ad_diff_cls: int, nci_diff_cls: int, num_patients: int) -> None:
+def display_differential_classification_results_one_threshold(*, 
+                      ad_diff_cls: int, nci_diff_cls: int, num_patients: int) -> None:
     """
     Calculate metrics of differential classification and display results (single threshold).
     """
-    print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified from the Alzheimer's disease category.")
-    print(f"{nci_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified from the NCI category.")
-    print(f"{(ad_diff_cls + nci_diff_cls) / num_patients * 100:.2f} % simulated subjects were differentially classified between AD and NCI categories.")
+    print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified"
+        " from the Alzheimer's disease category.")
+    print(f"{nci_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified"
+        " from the NCI category.")
+    print(f"{(ad_diff_cls + nci_diff_cls) / num_patients * 100:.2f} % simulated subjects were differentially"
+        " classified between AD and NCI categories.")
     print(f"Total number of differentially classified individuals: {(ad_diff_cls + nci_diff_cls)}")
 
 def display_differential_classification_results_two_thresholds(*, ad_diff_cls: int, int_diff_cls: int, nci_diff_cls: int, num_patients: int) -> None:
     """
     Calculate metrics of differential classification and display results (two thresholds).
     """
-    print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified from the Alzheimer's disease category.")
-    print(f"{int_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified from the intermediate category.")
-    print(f"{nci_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified from the NCI category.")
-    print(f"Fraction of simulated subjects differentially classified: Approximately {(ad_diff_cls + int_diff_cls + nci_diff_cls) / num_patients * 100:.2f}%")
+    print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified"
+        " from the Alzheimer's disease category.")
+    print(f"{int_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified"
+        " from the intermediate category.")
+    print(f"{nci_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified"
+        " from the NCI category.")
+    print("Fraction of simulated subjects differentially classified: Approximately"
+        f" {(ad_diff_cls + int_diff_cls + nci_diff_cls) / num_patients * 100:.2f}%")
     print(f"Total number of differentially classified individuals: {(ad_diff_cls + int_diff_cls + nci_diff_cls)}")
+
 
 def calculate_sens_spec_dual_threshold(cnf_mat: np.ndarray) -> str:
     """
@@ -52,28 +62,28 @@ def calculate_sens_spec_dual_threshold(cnf_mat: np.ndarray) -> str:
     ad_tn = np.sum(cnf_mat[:2, :2])
     ad_fp = np.sum(cnf_mat[:2, 2])
     ad_fn = np.sum(cnf_mat[2, :2])
-    sensitivity_AD = ad_tp / (ad_tp + ad_fn)
-    specificity_AD = ad_tn / (ad_tn + ad_fp)
-    ppv_AD = ad_tp / (ad_tp + ad_fp)
-    npv_AD = ad_tn / (ad_tn + ad_fn)
+    sensitivity_ad = ad_tp / (ad_tp + ad_fn)
+    specificity_ad = ad_tn / (ad_tn + ad_fp)
+    ppv_ad = ad_tp / (ad_tp + ad_fp)
+    npv_ad = ad_tn / (ad_tn + ad_fn)
 
     # NCI
     nci_tp = cnf_mat[0, 0]
     nci_tn = np.sum(cnf_mat[1:, 1:])
     nci_fp = np.sum(cnf_mat[1:, 0])
     nci_fn = np.sum(cnf_mat[0, 1:])
-    sensitivity_NCI = nci_tp / (nci_tp + nci_fn)
-    specificity_NCI = nci_tn / (nci_tn + nci_fp)
-    ppv_NCI = nci_tp / (nci_tp + nci_fp)
-    npv_NCI = nci_tn / (nci_tn + nci_fn)
+    sensitivity_nci = nci_tp / (nci_tp + nci_fn)
+    specificity_nci = nci_tn / (nci_tn + nci_fp)
+    ppv_nci = nci_tp / (nci_tp + nci_fp)
+    npv_nci = nci_tn / (nci_tn + nci_fn)
 
     string = f"""
     | **Metric**    | **AD (%)** | **NCI (%)** |
     |---------------|------------|-------------|
-    | Sensitivity   | {sensitivity_AD * 100:.2f} | {sensitivity_NCI * 100:.2f}|
-    | Specificity   | {specificity_AD * 100:.2f} | {specificity_NCI * 100:.2f} |
-    | PPV           | {ppv_AD * 100:.2f} | {ppv_NCI * 100:.2f} |
-    | NPV           | {npv_AD * 100:.2f} | {npv_NCI * 100:.2f} |
+    | Sensitivity   | {sensitivity_ad * 100:.2f} | {sensitivity_nci * 100:.2f}|
+    | Specificity   | {specificity_ad * 100:.2f} | {specificity_nci * 100:.2f} |
+    | PPV           | {ppv_ad * 100:.2f} | {ppv_nci * 100:.2f} |
+    | NPV           | {npv_ad * 100:.2f} | {npv_nci * 100:.2f} |
     """
     return string
 
@@ -114,3 +124,4 @@ def calculate_subject_wise_disagreement(*,
             subj_wise_disagreement.loc[i+1, f"{uncertainty}% uncertainty: % misclassified as {categories[gt[i, 0]]}"] = np.nan
     subj_wise_disagreement.index.name = "Patient ID"
     return subj_wise_disagreement
+

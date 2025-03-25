@@ -2,11 +2,12 @@
 Functions to test fit of data to various probability distributions.
 """
 from typing import Sequence
+
 import numpy as np
 import scipy.stats as st
-import statsmodels.api as sm
-import statsmodels.discrete.discrete_model as smd
 import statsmodels.discrete.count_model as cm
+import statsmodels.discrete.discrete_model as smd
+
 
 def test_gamma_fit(data: Sequence[float]) -> tuple[float, float, float, float, float]:
     """
@@ -14,7 +15,7 @@ def test_gamma_fit(data: Sequence[float]) -> tuple[float, float, float, float, f
     """
     fit_alpha, fit_loc, fit_beta = st.gamma.fit(data+1, floc=0)
     ks_stat, p_value = st.kstest(data+1, "gamma", args=(fit_alpha, fit_loc, fit_beta))
-    return ks_stat, p_value, fit_alpha, fit_loc, fit_beta    
+    return ks_stat, p_value, fit_alpha, fit_loc, fit_beta
 
 def test_lognormal_fit_ks(data: Sequence[float]) -> tuple[float, float, float, float, float]:
     """
@@ -46,7 +47,8 @@ def test_negative_binomial_fit(data: Sequence[float]) -> tuple[float, float, flo
     alpha, lambda_nb = nb_results.params["alpha"], np.exp(nb_results.params["const"])
     r = 1.0 / alpha
     p = r / (r + lambda_nb)
-    cdf_nb = lambda x: st.nbinom.cdf(x, r, p)
+    def cdf_nb(x: Sequence[float]) -> np.ndarray:
+        return st.nbinom.cdf(x, r, p)
     ks_stat, p_value = st.kstest(data, cdf_nb)
     return nb_results.aic, ks_stat, p_value, r, p
 
@@ -59,11 +61,13 @@ def test_poisson_fit(data: Sequence[float]) -> tuple[float, float, float, float]
     poisson_model = smd.Poisson(data, np.ones_like(data)[:, np.newaxis])
     poisson_results = poisson_model.fit(disp=0)
     lambda_p = np.exp(poisson_results.params["const"])
-    cdf_p = lambda x: st.poisson.cdf(x, mu=lambda_p)
+    def cdf_p(x: Sequence[float]) -> np.ndarray:
+        return st.poisson.cdf(x, mu=lambda_p)
     ks_stat, p_value = st.kstest(data, cdf_p)
     return poisson_results.aic, ks_stat, p_value, lambda_p
 
-def test_zero_inflated_poisson_fit(data: Sequence[float]) -> tuple[float, float, float, float, float]:
+def test_zero_inflated_poisson_fit(data: Sequence[float]) \
+            -> tuple[float, float, float, float, float]:
     """
     Determines fit of a zero-inflated Poisson distribution and returns the Akaike Information Criterion, 
     Kolmogorov-Smirnov (KS) test statistic, p-value and parameters of the fit distribution.
@@ -112,3 +116,4 @@ def test_zero_inflated_negative_binomial_fit(data: Sequence[float]) -> tuple[flo
 
     ks_stat, p_value = st.kstest(data, cdf_zinb)
     return zinb_results.aic, ks_stat, p_value, r, p, pi_zinb
+
