@@ -10,6 +10,18 @@ import seaborn as sns
 def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str]) -> None:
     """
     Plot confusion matrix for simulation output.
+
+    Parameters
+    ----------
+    cnf_mat
+        Confusion matrix as a NumPy array
+    categories
+        String labels of categories in the order of appearance in the NumPy array
+
+    Raises
+    ------
+    ValueError:
+        Dimension of confusion matrix does not match the number of categories.
     """
     if cnf_mat.shape[0] != len(categories):
         raise ValueError("Dimension of confusion matrix does not match the number of categories.")
@@ -26,6 +38,15 @@ def display_differential_classification_results_one_threshold(*,
               ad_diff_cls: int, nci_diff_cls: int, num_patients: int) -> None:
     """
     Calculate metrics of differential classification and display results (single threshold).
+
+    Parameters
+    ----------
+    ad_diff_cls
+        Number of subjects differentially classified in the AD (Alzheimer's Disease) category
+    nci_diff_cls
+        Number of subjects differentially classified in the NCI (Non-Cognitively Impaired) category
+    num_patients
+        Total number of subjects
     """
     print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were "
         "differentially classified from the Alzheimer's disease category.")
@@ -41,6 +62,17 @@ def display_differential_classification_results_two_thresholds(*,
     """
     Calculate metrics of differential classification and display results (two 
     thresholds).
+
+    Parameters
+    ----------
+    ad_diff_cls
+        Number of subjects differentially classified in the AD (Alzheimer's Disease) category
+    int_diff_cls
+        Number of subjects differentially classified in the intermediate category
+    nci_diff_cls
+        Number of subjects differentially classified in the NCI (Non-Cognitively Impaired) category
+    num_patients
+        Total number of subjects
     """
     print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were"
         " differentially classified from the Alzheimer's disease category.")
@@ -58,6 +90,21 @@ def calculate_sens_spec_dual_threshold(cnf_mat: np.ndarray) -> str:
     """
     Calculates and displays sensitivity and specificity for Alzheimer's disease (AD)
     and NCI categories from a confusion matrix for results from dual threshold simulations.
+
+    Parameters
+    ----------
+    cnf_mat
+        Confusion matrix as a NumPy array
+
+    Returns
+    -------
+    str
+        Markdown table representing results of the sensitivity and specificity calculations
+
+    Raises
+    ------
+    ValueError:
+        Confusion matrix should be 3x3.
     """
     if cnf_mat.shape[0] != 3:
         raise ValueError("Confusion matrix should be 3x3.")
@@ -98,8 +145,33 @@ def calculate_subject_wise_agreement(*,
                                      num_patients: int = 243,
                                      n_samples: int = 1000) -> pd.DataFrame:
     """
-    Calculate the percent of simulated predictions that agree with the actual 
+    Calculate the percent of simulated predictions that agree with the actual
     prediction for each subject.
+
+    Parameters
+    ----------
+    gt_arr_dict
+        Dictionary containing labels for actual data for subjects predicted
+        by the classifier. The keys are percent uncertainties and the corresponding
+        values are NumPy arrays with the labels (ordinal encoding, i.e. 0 for NCI,
+        1 for AD, etc.)
+    pred_arr_dict
+        Dictionary containing labels for simulated data for subjects predicted by 
+        the classifier. The keys are percent uncertainties and the corresponding
+        values are NumPy arrays with the labels (ordinal encoding, i.e. 0 for NCI,
+        1 for AD, etc.)
+    uncertainties
+        List of integer values representing percent uncertainty values simulated.
+    num_patients
+        Number of subjects
+    n_samples
+        Number of simulated points per subject
+
+    Returns
+    -------
+    pd.DataFrame
+        A Pandas Dataframe with percent values indicating what percent of predictions
+        for simulated points agree with the actual classification.
     """
     subj_wise_agreement = pd.DataFrame(index=np.arange(num_patients)+1,
                                        columns=[f"{uncert}% uncertainty" \
@@ -122,6 +194,33 @@ def calculate_subject_wise_disagreement(*,
     """
     Calculate the percent of simulated predictions that do not agree with the actual
     prediction for each subject.
+
+    Parameters
+    ----------
+    gt_arr_dict
+        Dictionary containing labels for actual data for subjects predicted
+        by the classifier. The keys are percent uncertainties and the corresponding
+        values are NumPy arrays with the labels (ordinal encoding, i.e. 0 for NCI,
+        1 for AD, etc.)
+    pred_arr_dict
+        Dictionary containing labels for simulated data for subjects predicted by 
+        the classifier. The keys are percent uncertainties and the corresponding
+        values are NumPy arrays with the labels (ordinal encoding, i.e. 0 for NCI,
+        1 for AD, etc.)
+    uncertainties
+        List of integer values representing percent uncertainty values simulated.
+    categories
+        List of strings representing categories for the classifier.
+    num_patients
+        Number of subjects
+    n_samples
+        Number of simulated points per subject
+
+    Returns
+    -------
+    pd.DataFrame
+        A Pandas Dataframe with category-wise percent values indicating what percent 
+        of simulated points got misclassified as that category.
     """
     subj_wise_disagreement = pd.DataFrame(
         index=np.arange(num_patients)+1,
