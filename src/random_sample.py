@@ -6,25 +6,87 @@ import numpy as np
 
 
 def sample_poisson(lambda_p: float, shape: tuple[int, int]) -> np.ndarray:
-    """Generates random samples of given shape from a Poisson distribution."""
+    """
+    Generates random samples of given shape from a Poisson distribution.
+
+    Parameters
+    ----------
+    lambda_p
+        Expected value of the distribution, or the $\lambda$ parameter
+    shape
+        Dimensions of the output sample array
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
+    """
     return np.random.poisson(lam=lambda_p, size=shape)
 
 def sample_negative_binomial(r: float, p: float, shape: tuple[int, int]) -> np.ndarray:
-    """Generates random samples of given shape from a negative binomial distribution."""
+    """
+    Generates random samples of given shape from a negative binomial distribution.
+
+    Parameters
+    ----------
+    r
+        Number of successes until the experiment is stopped.
+    p
+        Success probability in each experiment.
+    shape
+        Dimensions of the output sample array
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
+    """
     return np.random.negative_binomial(r, p, size=shape)
 
 def sample_zero_inflated_poisson(
         lambda_zip: float, pi_zip: float, shape: tuple[int, int]) -> np.ndarray:
-    """Generates random samples of given shape from a zero-inflated Poisson distribution."""
+    """
+    Generates random samples of given shape from a zero-inflated Poisson distribution.
+
+    Parameters
+    ----------
+    lambda_zip
+        Expected value of the distribution, or the $\lambda$ parameter
+    pi_zip
+        Probability of extra zeros.
+    shape
+        Dimensions of the output sample array
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
+    """
     probs = np.random.rand(*shape)
     res = np.random.poisson(lam=lambda_zip, size=shape)
     res[probs < pi_zip] = 0.0
     return res
 
 def sample_zero_inflated_negative_binomial(
-        r: float, p: float, pi_zinb: float, shape: tuple[int, int]) -> tuple[int, int]:
+        r: float, p: float, pi_zinb: float, shape: tuple[int, int]) -> np.ndarray:
     """
     Generates random samples of given shape from a zero-inflated negative binomial distribution.
+
+    Parameters
+    ----------
+    r
+        Number of successes until the experiment is stopped.
+    p
+        Success probability in each experiment.
+    pi_zinb
+        Probability of extra zeros.
+    shape
+        Dimensions of the output sample array
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
     """
     probs = np.random.rand(*shape)
     res = np.random.negative_binomial(r, p, size=shape)
@@ -51,6 +113,25 @@ def sample_poisson_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> np.n
     To achieve this we sample from a Poisson distribution with $\lambda = \frac{1}{k^2}$. 
     Then we scale each value by $\frac{X}{1/k^2} = Xk^2$ so that the final samples 
     have a mean $X$ and standard deviation $kX$.
+
+    Parameters
+    ----------
+    mu
+        Mean of resulting distribution
+    rel_u
+        Relative standard deviation of the distribution
+    n_points
+        Number of points to sample
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
+
+    Raises
+    ------
+    ValueError:
+        Relative uncertainty must be between 0 and 1.
     """
     if not 0 <= rel_u <= 1:
         raise ValueError("Relative uncertainty must be between 0 and 1.")
@@ -101,6 +182,27 @@ def sample_zero_inflated_poisson_mean_rsd(
     $$
     
     Here as well, as $0 \le \pi \le 1$, we need $Xk^2 > 1$. 
+
+    Parameters
+    ----------
+    mu
+        Mean of resulting distribution
+    rel_u
+        Relative standard deviation of the distribution
+    n_points
+        Number of points to sample
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
+
+    Raises
+    ------
+    ValueError:
+        Relative uncertainty must be between 0 and 1.
+    ValueError:
+        For the given relative uncertainty rel_u, we need rel_u^2 > 1 / mean.
     """
     if not 0 <= rel_u <= 1:
         raise ValueError("Relative uncertainty must be between 0 and 1.")
@@ -159,6 +261,28 @@ def sample_negative_binomial_mean_rsd(mu: int, rel_u: float, n_points: int = 100
     (For instance, if $X=50$, then $1/\sqrt{50}\approx 14\%$; we cannot model a 10%
     relative uncertainty with a negative binomial when the “baseline” Poisson uncertainty
     is 14%.)
+
+    Parameters
+    ----------
+    mu
+        Mean of resulting distribution
+    rel_u
+        Relative standard deviation of the distribution
+    n_points
+        Number of points to sample
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
+
+
+    Raises
+    ------
+    ValueError:
+        Relative uncertainty must be between 0 and 1.
+    ValueError:
+        For the given relative uncertainty rel_u, we need rel_u^2 > 1 / mean.
     """
     if not 0 <= rel_u <= 1:
         raise ValueError("Relative uncertainty must be between 0 and 1.")
@@ -173,6 +297,7 @@ def sample_zero_inflated_negative_binomial_mean_rsd(
     r"""
     Given a mean ($X$) and uncertainty % (relative standard deviation) $k$, sample 
     from a zero-inflated negative binomial distribution corresponding to these.
+    
     We use a similar parametrization as the negative binomial distribution above with 
     the added parameter of $\pi$. 
     Since this time $\pi$ can be set independently of $X$ and $k$ we can simply set
@@ -189,6 +314,33 @@ def sample_zero_inflated_negative_binomial_mean_rsd(
     $$
     k^2 > \frac{1}{X}.
     $$
+
+    Parameters
+    ----------
+    mu
+        Mean of resulting distribution
+    rel_u
+        Relative standard deviation of the distribution
+    pi_zinb
+        Probability of extra zeros.
+    n_points
+        Number of points to sample
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
+
+
+    Raises
+    ------
+    ValueError:
+        Relative uncertainty must be between 0 and 1.
+    ValueError:
+        Probability must be between 0 and 1.
+    ValueError:
+        For the given relative uncertainty rel_u, we need rel_u^2 > 1 / mean.
+
     """
     if not 0 <= rel_u <= 1:
         raise ValueError("Relative uncertainty must be between 0 and 1.")
@@ -207,6 +359,26 @@ def sample_gamma_mean_rsd(mu: float, rel_u: float, n_points: int) -> np.ndarray:
     """
     Given a mean and uncertainty % (relative standard deviation), sample from a Gamma 
     distribution corresponding to these.
+
+    Parameters
+    ----------
+    mu
+        Mean of resulting distribution
+    rel_u
+        Relative standard deviation of the distribution
+    n_points
+        Number of points to sample
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
+
+
+    Raises
+    ------
+    ValueError:
+        Relative uncertainty must be between 0 and 1.
     """
     if not 0 <= rel_u <= 1:
         raise ValueError("Relative uncertainty must be between 0 and 1.")
@@ -217,7 +389,27 @@ def sample_gamma_mean_rsd(mu: float, rel_u: float, n_points: int) -> np.ndarray:
 def sample_lognormal_mean_rsd(mu: float, rel_u: float, n_points: int) -> np.ndarray:
     """
     Given a mean and uncertainty % (relative standard deviation), sample from a 
-    Gamma distribution corresponding to these.
+    log normal distribution corresponding to these.
+
+    Parameters
+    ----------
+    mu
+        Mean of resulting distribution
+    rel_u
+        Relative standard deviation of the distribution
+    n_points
+        Number of points to sample
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
+
+
+    Raises
+    ------
+    ValueError:
+        Relative uncertainty must be between 0 and 1.
     """
     if not 0 <= rel_u <= 1:
         raise ValueError("Relative uncertainty must be between 0 and 1.")
