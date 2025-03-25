@@ -22,32 +22,36 @@ def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str]) -> None:
     plt.ylabel("True", fontsize=24)
     plt.show()
 
-def display_differential_classification_results_one_threshold(*, 
-                      ad_diff_cls: int, nci_diff_cls: int, num_patients: int) -> None:
+def display_differential_classification_results_one_threshold(*,
+              ad_diff_cls: int, nci_diff_cls: int, num_patients: int) -> None:
     """
     Calculate metrics of differential classification and display results (single threshold).
     """
-    print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified"
-        " from the Alzheimer's disease category.")
-    print(f"{nci_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified"
-        " from the NCI category.")
-    print(f"{(ad_diff_cls + nci_diff_cls) / num_patients * 100:.2f} % simulated subjects were differentially"
-        " classified between AD and NCI categories.")
-    print(f"Total number of differentially classified individuals: {(ad_diff_cls + nci_diff_cls)}")
+    print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were "
+        "differentially classified from the Alzheimer's disease category.")
+    print(f"{nci_diff_cls / num_patients * 100:.2f} % simulated subjects were "
+        "differentially classified from the NCI category.")
+    print(f"{(ad_diff_cls + nci_diff_cls) / num_patients * 100:.2f} % simulated"
+        " subjects were differentially classified between AD and NCI categories.")
+    print("Total number of differentially classified individuals: "
+        f"{(ad_diff_cls + nci_diff_cls)}")
 
-def display_differential_classification_results_two_thresholds(*, ad_diff_cls: int, int_diff_cls: int, nci_diff_cls: int, num_patients: int) -> None:
+def display_differential_classification_results_two_thresholds(*,
+       ad_diff_cls: int, int_diff_cls: int, nci_diff_cls: int, num_patients: int) -> None:
     """
-    Calculate metrics of differential classification and display results (two thresholds).
+    Calculate metrics of differential classification and display results (two 
+    thresholds).
     """
-    print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified"
-        " from the Alzheimer's disease category.")
-    print(f"{int_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified"
-        " from the intermediate category.")
-    print(f"{nci_diff_cls / num_patients * 100:.2f} % simulated subjects were differentially classified"
-        " from the NCI category.")
+    print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were"
+        " differentially classified from the Alzheimer's disease category.")
+    print(f"{int_diff_cls / num_patients * 100:.2f} % simulated subjects were "
+        "differentially classified from the intermediate category.")
+    print(f"{nci_diff_cls / num_patients * 100:.2f} % simulated subjects were "
+        "differentially classified from the NCI category.")
     print("Fraction of simulated subjects differentially classified: Approximately"
         f" {(ad_diff_cls + int_diff_cls + nci_diff_cls) / num_patients * 100:.2f}%")
-    print(f"Total number of differentially classified individuals: {(ad_diff_cls + int_diff_cls + nci_diff_cls)}")
+    print("Total number of differentially classified individuals: "
+        f"{(ad_diff_cls + int_diff_cls + nci_diff_cls)}")
 
 
 def calculate_sens_spec_dual_threshold(cnf_mat: np.ndarray) -> str:
@@ -88,40 +92,50 @@ def calculate_sens_spec_dual_threshold(cnf_mat: np.ndarray) -> str:
     return string
 
 def calculate_subject_wise_agreement(*,
-                                     gt_arr_dict: dict[int, np.ndarray], 
-                                     pred_arr_dict: dict[int, np.ndarray], 
+                                     gt_arr_dict: dict[int, np.ndarray],
+                                     pred_arr_dict: dict[int, np.ndarray],
                                      uncertainties: list[int],
-                                     num_patients: int = 243, 
+                                     num_patients: int = 243,
                                      n_samples: int = 1000) -> pd.DataFrame:
     """
-    Calculate the percent of simulated predictions that agree with the actual prediction for each subject.
+    Calculate the percent of simulated predictions that agree with the actual 
+    prediction for each subject.
     """
-    subj_wise_agreement = pd.DataFrame(index=np.arange(num_patients)+1, columns=[f"{uncert}% uncertainty" for uncert in uncertainties])
+    subj_wise_agreement = pd.DataFrame(index=np.arange(num_patients)+1,
+                                       columns=[f"{uncert}% uncertainty" \
+                                       for uncert in uncertainties])
     for uncertainty in uncertainties:
         gt = gt_arr_dict[uncertainty].reshape(num_patients, n_samples)
         preds = pred_arr_dict[uncertainty].reshape(num_patients, n_samples)
-        subj_wise_agreement.loc[:, f"{uncertainty}% uncertainty"] = (gt == preds).sum(axis=1) / n_samples * 100
+        subj_wise_agreement.loc[:, f"{uncertainty}% uncertainty"] = \
+                (gt == preds).sum(axis=1) / n_samples * 100
     subj_wise_agreement.index.name = "Patient ID"
     return subj_wise_agreement
 
 def calculate_subject_wise_disagreement(*,
-                                     gt_arr_dict: dict[int, np.ndarray], 
-                                     pred_arr_dict: dict[int, np.ndarray], 
-                                     uncertainties: list[int],
-                                     categories: list[str] = ["NCI", "Intermediate", "AD"],
-                                     num_patients: int = 243, 
-                                     n_samples: int = 1000) -> pd.DataFrame:
+                        gt_arr_dict: dict[int, np.ndarray],
+                        pred_arr_dict: dict[int, np.ndarray],
+                        uncertainties: list[int],
+                        categories: list[str],
+                        num_patients: int = 243,
+                        n_samples: int = 1000) -> pd.DataFrame:
     """
-    Calculate the percent of simulated predictions that do not agree with the actual prediction for each subject.
+    Calculate the percent of simulated predictions that do not agree with the actual
+    prediction for each subject.
     """
-    subj_wise_disagreement = pd.DataFrame(index=np.arange(num_patients)+1, columns=[f"{uncert}% uncertainty: % misclassified as {category}" for uncert in uncertainties for category in categories])
+    subj_wise_disagreement = pd.DataFrame(
+        index=np.arange(num_patients)+1,
+          columns=[f"{uncert}% uncertainty: % misclassified as {category}" \
+            for uncert in uncertainties for category in categories])
     for uncertainty in uncertainties:
         gt = gt_arr_dict[uncertainty].reshape(num_patients, n_samples)
         preds = pred_arr_dict[uncertainty].reshape(num_patients, n_samples)
         for i, cat in enumerate(categories):
-            subj_wise_disagreement.loc[:, f"{uncertainty}% uncertainty: % misclassified as {cat}"] = np.round((preds == i).sum(axis=1) / n_samples * 100, 2)
+            subj_wise_disagreement.loc[:, \
+            f"{uncertainty}% uncertainty: % misclassified as {cat}"] = \
+                np.round((preds == i).sum(axis=1) / n_samples * 100, 2)
         for i in range(num_patients):
-            subj_wise_disagreement.loc[i+1, f"{uncertainty}% uncertainty: % misclassified as {categories[gt[i, 0]]}"] = np.nan
+            subj_wise_disagreement.loc[i+1, \
+            f"{uncertainty}% uncertainty: % misclassified as {categories[gt[i, 0]]}"] = np.nan
     subj_wise_disagreement.index.name = "Patient ID"
     return subj_wise_disagreement
-

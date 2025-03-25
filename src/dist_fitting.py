@@ -69,13 +69,14 @@ def test_poisson_fit(data: Sequence[float]) -> tuple[float, float, float, float]
 def test_zero_inflated_poisson_fit(data: Sequence[float]) \
             -> tuple[float, float, float, float, float]:
     """
-    Determines fit of a zero-inflated Poisson distribution and returns the Akaike Information Criterion, 
-    Kolmogorov-Smirnov (KS) test statistic, p-value and parameters of the fit distribution.
+    Determines fit of a zero-inflated Poisson distribution and returns the Akaike 
+    Information Criterion, Kolmogorov-Smirnov (KS) test statistic, p-value and 
+    parameters of the fit distribution.
     """
     data = data.astype(np.int64)
-    zip_model = cm.ZeroInflatedPoisson(endog=data, 
-                                       exog=np.ones_like(data)[:, np.newaxis], 
-                                       exog_infl=np.ones_like(data)[:, np.newaxis], 
+    zip_model = cm.ZeroInflatedPoisson(endog=data,
+                                       exog=np.ones_like(data)[:, np.newaxis],
+                                       exog_infl=np.ones_like(data)[:, np.newaxis],
                                        inflation='logit')
     zip_results = zip_model.fit(disp=0)
     lambda_zip = np.exp(zip_results.params["const"])
@@ -91,22 +92,26 @@ def test_zero_inflated_poisson_fit(data: Sequence[float]) \
     ks_stat, p_value = st.kstest(data, cdf_zip)
     return zip_results.aic, ks_stat, p_value, lambda_zip, pi_zip
 
-def test_zero_inflated_negative_binomial_fit(data: Sequence[float]) -> tuple[float, float, float, float, float, float]:
+def test_zero_inflated_negative_binomial_fit(data: Sequence[float]) ->\
+                tuple[float, float, float, float, float, float]:
     """
-    Determines fit of a zero-inflated negative binomial distribution and returns the Akaike Information Criterion, 
-    Kolmogorov-Smirnov (KS) test statistic, p-value and parameters of the fit distribution.
+    Determines fit of a zero-inflated negative binomial distribution and returns 
+    the Akaike Information Criterion, Kolmogorov-Smirnov (KS) test statistic, 
+    p-value and parameters of the fit distribution.
     """
     data = data.astype(np.int64)
-    zinb_model = cm.ZeroInflatedNegativeBinomialP(endog=data, 
-                                                  exog=np.ones_like(data)[:, np.newaxis], 
-                                                  exog_infl=np.ones_like(data)[:, np.newaxis], 
-                                                  inflation='logit')
+    zinb_model = cm.ZeroInflatedNegativeBinomialP(endog=data,
+                          exog=np.ones_like(data)[:, np.newaxis],
+                          exog_infl=np.ones_like(data)[:, np.newaxis],
+                          inflation='logit')
     zinb_results = zinb_model.fit(disp=0)
-    alpha, lambda_zinb, gamma = zinb_results.params["alpha"], np.exp(zinb_results.params["const"]), zinb_results.params["inflate_const"]
+    alpha, lambda_zinb, gamma = zinb_results.params["alpha"], \
+                                np.exp(zinb_results.params["const"]), \
+                                zinb_results.params["inflate_const"]
     r = 1.0 / alpha
     p = r / (r + lambda_zinb)
     pi_zinb = 1.0 / (1.0 + np.exp(-gamma))
-    
+
     def cdf_zinb(x: Sequence[float]) -> np.ndarray:
         x = np.atleast_1d(x)
         cdf = np.zeros_like(x, dtype=float)
@@ -116,4 +121,3 @@ def test_zero_inflated_negative_binomial_fit(data: Sequence[float]) -> tuple[flo
 
     ks_stat, p_value = st.kstest(data, cdf_zinb)
     return zinb_results.aic, ks_stat, p_value, r, p, pi_zinb
-

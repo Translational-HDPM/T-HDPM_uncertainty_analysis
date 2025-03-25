@@ -27,7 +27,8 @@ def linear_classifier_score(
     """
     return np.sum(coefficients * col, axis=0)
 
-def antilogit_classifier_score(linear_score: float | np.ndarray, gamma: float = 0.0) -> float | np.ndarray:
+def antilogit_classifier_score(linear_score: float | np.ndarray,
+                               gamma: float = 0.0) -> float | np.ndarray:
     """Function to perform anti-logit operation on the linear score"""
     return np.exp(gamma + linear_score) / (1 + np.exp(gamma + linear_score))
 
@@ -51,11 +52,13 @@ def sample_single_patient(
     num_runs: int = 100,
     percent: float = 100,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Function to calculate the classifier score for each simulation of "num_runs" simulations, corresponding to each subject."""
+    """
+    Function to calculate the classifier score for each simulation of 
+    `num_runs` simulations, corresponding to each subject.
+    """
     if not 0.0 <= percent <= 100.0:
         raise RuntimeError("Percent out of bounds.")
     lin_scores = np.asarray([sample(
-                    col, np.abs([percent / 100.0 * val for val in col]), coefficients
-                ) for _ in range(num_runs)], dtype=np.float32)
+            col, np.abs([percent / 100.0 * val for val in col]), coefficients
+        ) for _ in range(num_runs)], dtype=np.float32)
     return lin_scores, antilogit_classifier_score(lin_scores)
-
