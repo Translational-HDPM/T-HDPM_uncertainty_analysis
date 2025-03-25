@@ -1,4 +1,6 @@
-"""Plotting functions for Monte Carlo simulations"""
+"""
+Plotting functions for Monte Carlo simulations
+"""
 
 from typing import Sequence
 import matplotlib.pyplot as plt

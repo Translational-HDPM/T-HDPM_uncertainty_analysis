@@ -1,8 +1,5 @@
-# !/usr/bin/env python3
 """
 Functions for Monte Carlo simulations with a logistic regression classifier.
-
-@author: Debajyoti Debnath
 """
 
 import numpy as np
@@ -15,20 +12,20 @@ def linear_classifier_subscores(coefficients: np.ndarray, samples: np.ndarray) -
     return np.sum(res[_coeff < 0.0, :], axis=0), np.sum(res[_coeff >= 0.0, :], axis=0)
 
 def linear_classifier_score(
-    coefficients: Sequence[float], col: Sequence[float]
+    coefficients: np.ndarray, col: np.ndarray
 ) -> float:
     """This score is the classifer linear score we want to compare with the simulated scores."""
     return np.sum(coefficients * col, axis=0)
 
 
-def antilogit_classifier_score(linear_score: float | Sequence[float], gamma: float = 0.0) -> float | Sequence[float]:
+def antilogit_classifier_score(linear_score: float | np.ndarray, gamma: float = 0.0) -> float | np.ndarray:
     """Function to perform anti-logit operation on the linear score"""
     return np.exp(gamma + linear_score) / (1 + np.exp(gamma + linear_score))
 
 
 def z_score(
-    x: Sequence[float], mean: Sequence[float], std: Sequence[float]
-) -> Sequence[float]:
+    x: float | np.ndarray, mean: float | np.ndarray, std: float | np.ndarray
+) -> float | np.ndarray:
     """Function whose input is TPM and output the corresponding Z-score."""
     return (x - mean) / std
 
