@@ -19,30 +19,36 @@ def linear_classifier_subscores(coefficients: np.ndarray,
     return np.sum(res[_coeff < 0.0, :], axis=0), np.sum(res[_coeff >= 0.0, :], axis=0)
 
 def linear_classifier_score(
-    coefficients: np.ndarray, col: np.ndarray
-) -> float:
+    coefficients: np.ndarray, values: np.ndarray
+) -> float | np.ndarray:
     """
-    This score is the classifer linear score we want to compare with the simulated 
-    scores.
+    Calculate the score of a linear classifier by multiplying the coefficients with
+    given data.
     """
-    return np.sum(coefficients * col, axis=0)
+    return np.sum(coefficients * values, axis=0)
 
 def antilogit_classifier_score(linear_score: float | np.ndarray,
                                gamma: float = 0.0) -> float | np.ndarray:
-    """Function to perform anti-logit operation on the linear score"""
+    """
+    Function to perform anti-logit operation on a linear score
+    """
     return np.exp(gamma + linear_score) / (1 + np.exp(gamma + linear_score))
 
 def z_score(
     x: float | np.ndarray, mean: float | np.ndarray, std: float | np.ndarray
 ) -> float | np.ndarray:
-    """Function whose input is TPM and output the corresponding Z-score."""
+    """
+    Given means and standard deviations of the data, converts given data to 
+    z-scores.
+    """
     return (x - mean) / std
 
-def sample(means: Sequence[float], std: Sequence[float], coefficients: Sequence[float]) -> float:
+def sample(means: Sequence[float], stds: Sequence[float], coefficients: Sequence[float]) -> float:
     """Sampling function performing the Monte Carlo simulations"""
+    
     return np.sum(
         np.multiply(
-            coefficients, np.random.normal(means, std, size=(1, len(coefficients)))
+            coefficients, np.random.normal(means, stds, size=(1, len(coefficients)))
         )
     )
 
