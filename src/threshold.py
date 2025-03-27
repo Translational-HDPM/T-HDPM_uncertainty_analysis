@@ -1,20 +1,23 @@
-"""Plotting functions for Monte Carlo simulations"""
+"""
+Plotting functions for Monte Carlo simulations
+"""
 
 from typing import Sequence
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
-from src.classifier import (
-    sample_single_patient,
-    antilogit_classifier_score,
-    linear_classifier_score,
-)
+import seaborn as sns
+
+from src.classifier import (antilogit_classifier_score,
+                            linear_classifier_score,
+                            sample_single_patient)
 
 sns.set_style("ticks")
 
 
 def plot_uncertainty_at_threshold(
+    *,
     z_scores_df: pd.DataFrame,
     coefficients: Sequence[float],
     num_runs: int = 100,
@@ -32,7 +35,8 @@ def plot_uncertainty_at_threshold(
     Outputs:
 
         Scatter plot displaying simulation classifier scores against subject scores.
-        Classification of outcomes as False Positives (FP), False Negatives (FN), True Positives (TP), and True Negatives (TN).
+        Classification of outcomes as False Positives (FP), False Negatives (FN), 
+        True Positives (TP), and True Negatives (TN).
 
     Pseudocode:
 
@@ -41,9 +45,11 @@ def plot_uncertainty_at_threshold(
 
       2. Compute Subject Scores:
             For each subject:
-            a. Linear Score Calculation: Compute linear scores by multiplying the z-scores (from z_scores_df) by a coefficient.
+            a. Linear Score Calculation: Compute linear scores by multiplying the z-scores 
+            (from z_scores_df) by a coefficient.
                 Function: linear_classifier_score.
-                b. Classifier Score Calculation: Convert linear scores to classifier scores using an anti-logit operation.
+                b. Classifier Score Calculation: Convert linear scores to classifier scores
+                    using an anti-logit operation.
                 Function: antilogit_classifier_score.
 
       3. Compute Simulation Scores:
@@ -58,21 +64,25 @@ def plot_uncertainty_at_threshold(
 
       5. Classify Simulation Outcomes:
             For each simulation score for each subject (iterate num_runs times):
-                Use the threshold to classify outcomes into FP, FN, TP, and TN using conditional statements.
+                Use the threshold to classify outcomes into FP, FN, TP, and TN using 
+                conditional statements.
 
       6. Calculate Accuracy Metrics:
-            Based on the FP, FN, TP, and TN classifications, calculate accuracy measures for each subject.
+            Based on the FP, FN, TP, and TN classifications, calculate accuracy measures for
+            each subject.
 
       7. Repeat Process for All Subjects:
             Repeat steps 2–6 for each subject.
 
       8. Generate Scatter Plot:
             Plot simulation scores (y-axis) against subject scores (x-axis).
-            Add two perpendicular threshold lines on the plot (one on the x-axis and one on the y-axis) to categorize scatter dots into FP, FN, TP, and TN.
+            Add two perpendicular threshold lines on the plot (one on the x-axis and 
+            one on the y-axis) to categorize scatter dots into FP, FN, TP, and TN.
     """
 
     false_pos = false_neg = 0
-    num_subj_unreliable = 0  # keeps track of subjects whose score is unreliable under the assumed variation
+    # keeps track of subjects whose score is unreliable under the assumed variation
+    num_subj_unreliable = 0
 
     plt.figure(figsize=(10, 10))
     for i in range(num_patients):
@@ -81,11 +91,12 @@ def plot_uncertainty_at_threshold(
         y_0 = antilogit_classifier_score(linear_classifier_score(coefficients, col))
         x_data = np.ones_like(y_data) * y_0
         colour = np.zeros_like(x_data)
-        for j in range(len(x_data)):
-            if x_data[j] > thresh and y_data[j] < thresh:
-                colour[j] = 1
-                false_neg += 1
-            elif x_data[j] < thresh and y_data[j] > thresh:
+        for j in range(x_data.shape[0]):
+            if x_data[j] > thresh:
+                if y_data[j] < thresh:
+                    colour[j] = 1
+                    false_neg += 1
+            elif y_data[j] > thresh:
                 colour[j] = 2
                 false_pos += 1
         if false_neg > 0 or false_pos > 0:
@@ -111,7 +122,7 @@ def plot_uncertainty_at_threshold(
 def plot_v_plot(
     z_scores_df: pd.DataFrame,
     coefficients: Sequence[float],
-    uncertainty_range: list[int] = [25],
+    uncertainty_range: list[int],
     thresh: float = 0.5,
     num_runs: int = 100,
     num_patients: int = 243,
@@ -125,8 +136,9 @@ def plot_v_plot(
 
     Outputs:
 
-        Subject accuracy based on the number of simulations, stored in a DataFrame: accuracy_df.
-        True Positives (TP), True Negatives (TN), False Positives (FP), and False Negatives (FN) classifications, stored in a DataFrame: false_pos_df.
+        Subject accuracy based on the number of simulations, stored in a DataFrame: 
+        accuracy_df. True Positives (TP), True Negatives (TN), False Positives (FP), 
+        and False Negatives (FN) classifications, stored in a DataFrame: false_pos_df.
 
     Pseudocode:
 
@@ -135,9 +147,11 @@ def plot_v_plot(
 
      2. Calculate Subject Scores:
             For each subject:
-            a. Linear Score Calculation: Compute linear scores by multiplying z_scores_df (a DataFrame of z-scores) by a coefficient.
+            a. Linear Score Calculation: Compute linear scores by multiplying `z_scores_df` 
+            (a DataFrame of z-scores) by a coefficient.
                 Function: linear_classifier_score.
-            b. Classifier Score Calculation: Convert linear scores into classifier scores using an anti-logit operation.
+            b. Classifier Score Calculation: Convert linear scores into classifier scores 
+            using an anti-logit operation.
                 Function: antilogit_classifier_score.
 
      3. Generate Simulation Scores:
@@ -152,7 +166,8 @@ def plot_v_plot(
 
      5. Classify Simulations for Each Subject:
             Iterate over the num_runs simulation scores for each subject:
-                Use conditional statements based on the threshold to classify each simulation score as:
+                Use conditional statements based on the threshold to classify each
+                simulation score as:
                     True Positive (TP)
                     True Negative (TN)
                     False Positive (FP)
@@ -178,11 +193,12 @@ def plot_v_plot(
             "Unreliable Subjects",
         ],
     )
-
-    num_subj_unreliable = 0  # keeps track of subjects whose score is unreliable under the assumed variation (0 is fine, 1 is unreliable)
+    # keeps track of subjects whose score is unreliable under the assumed variation
+    # (0 is fine, 1 is unreliable)
+    num_subj_unreliable = 0
     accuracy_df = pd.DataFrame(columns=uncertainty_range)
 
-    for i in range(len(uncertainty_range)):
+    for i, uncertainty in enumerate(uncertainty_range):
         tot_false_pos = tot_false_neg = tot_true_pos = tot_true_neg = 0
 
         for j in range(num_patients):
@@ -191,20 +207,22 @@ def plot_v_plot(
                 col,
                 coefficients,
                 num_runs,
-                uncertainty_range[i],
+                uncertainty,
             )
             y_0 = antilogit_classifier_score(linear_classifier_score(coefficients, col))
             x_data = np.ones_like(y_data) * y_0
             false_neg = false_pos = 0
-            for k in range(len(x_data)):
-                if x_data[k] > thresh and y_data[k] < thresh:
-                    false_neg += 1
-                elif x_data[k] < thresh and y_data[k] > thresh:
-                    false_pos += 1
-                elif x_data[k] > thresh and y_data[k] > thresh:
-                    tot_true_pos += 1
-                elif x_data[k] < thresh and y_data[k] < thresh:
-                    tot_true_neg += 1
+            for k in range(x_data.shape[0]):
+                if x_data[k] >= thresh:
+                    if y_data[k] < thresh:
+                        false_neg += 1
+                    else:
+                        tot_true_pos += 1
+                else:
+                    if y_data[k] >= thresh:
+                        false_pos += 1
+                    else:
+                        tot_true_neg += 1
             tot_false_pos += false_pos
             tot_false_neg += false_neg
 
@@ -243,7 +261,7 @@ def plot_v_plot(
     accuracy_df["Patient ID"] = patient_id
     accuracy_df = accuracy_df.set_index("Patient ID")
 
-    AD = np.sum(accuracy_df["Classifier Score"] > thresh)
-    NCI = len(accuracy_df["Classifier Score"]) - AD
-    print(f"{AD=} {NCI=}")
+    ad = np.sum(accuracy_df["Classifier Score"] > thresh)
+    nci = len(accuracy_df["Classifier Score"]) - ad
+    print(f"{ad=} {nci=}")
     return accuracy_df, false_pos_df
