@@ -1,13 +1,14 @@
 """
 Functions for post-processing (visualization and downstream analysis) of simulation results.
 """
+from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
 
-def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str]) -> None:
+def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str], title: Optional[str] = None) -> None:
     """
     Plot confusion matrix for simulation output.
 
@@ -17,6 +18,8 @@ def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str]) -> None:
         Confusion matrix as a NumPy array
     categories
         String labels of categories in the order of appearance in the NumPy array
+    title
+        An optional title for the plot.
 
     Raises
     ------
@@ -26,16 +29,19 @@ def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str]) -> None:
     if cnf_mat.shape[0] != len(categories):
         raise ValueError("Dimension of confusion matrix does not match the number of categories.")
     cnf_mat_df = pd.DataFrame(cnf_mat.astype(np.int64), index=categories, columns=categories)
-    plt.figure(figsize=(10, 10))
-    plt.title("Confusion matrix", fontsize=28)
-    sns.heatmap(cnf_mat_df, annot=True, cbar=False, fmt="g", annot_kws={"size": 18})
-    plt.tick_params(labelsize=18)
-    plt.xlabel("Predicted", fontsize=24)
-    plt.ylabel("True", fontsize=24)
+    plt.figure(figsize=(8, 8))
+    sns.heatmap(cnf_mat_df, annot=True, cbar=False, fmt="g")
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    if title is not None:
+        plt.title(title)
+    else:
+        plt.title("Confusion matrix")
     plt.show()
 
 def display_differential_classification_results_one_threshold(*,
-              ad_diff_cls: int, nci_diff_cls: int, num_patients: int) -> None:
+              ad_diff_cls: int, nci_diff_cls: int, 
+              gt_probs: np.ndarray, thres: float) -> None:
     """
     Calculate metrics of differential classification and display results (single threshold).
 
@@ -45,20 +51,29 @@ def display_differential_classification_results_one_threshold(*,
         Number of subjects differentially classified in the AD (Alzheimer's Disease) category
     nci_diff_cls
         Number of subjects differentially classified in the NCI (Non-Cognitively Impaired) category
-    num_patients
-        Total number of subjects
+    gt_probs
+        Classifier probability scores for actual TPM values as a NumPy array
+    thres
+        Probability threshold for the binary classifier
     """
-    print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were "
+    num_nci = (thres > gt_probs).sum()
+    num_ad = (thres <= gt_probs).sum()
+    print(f"{ad_diff_cls / num_ad * 100:.2f} % simulated subjects were "
         "differentially classified from the Alzheimer's disease category.")
-    print(f"{nci_diff_cls / num_patients * 100:.2f} % simulated subjects were "
+    print(f"{nci_diff_cls / num_nci * 100:.2f} % simulated subjects were "
         "differentially classified from the NCI category.")
-    print(f"{(ad_diff_cls + nci_diff_cls) / num_patients * 100:.2f} % simulated"
+    print(f"{(ad_diff_cls + nci_diff_cls) / len(gt_probs) * 100:.2f} % simulated"
         " subjects were differentially classified between AD and NCI categories.")
     print("Total number of differentially classified individuals: "
         f"{(ad_diff_cls + nci_diff_cls)}")
 
 def display_differential_classification_results_two_thresholds(*,
-       ad_diff_cls: int, int_diff_cls: int, nci_diff_cls: int, num_patients: int) -> None:
+       ad_diff_cls: int, 
+       int_diff_cls: int, 
+       nci_diff_cls: int,
+       gt_probs: np.ndarray,
+       thres_low: float,
+       thres_high: float) -> None:
     """
     Calculate metrics of differential classification and display results (two 
     thresholds).
@@ -71,17 +86,24 @@ def display_differential_classification_results_two_thresholds(*,
         Number of subjects differentially classified in the intermediate category
     nci_diff_cls
         Number of subjects differentially classified in the NCI (Non-Cognitively Impaired) category
-    num_patients
-        Total number of subjects
+    gt_probs
+        Classifier probability scores for actual TPM values as a NumPy array
+    thres_low
+        Probability threshold for the binary classifier between NCI and Intermediate
+    thres_high
+        Probability threshold for the binary classifier between Intermediate and AD
     """
-    print(f"{ad_diff_cls / num_patients * 100:.2f} % simulated subjects were"
+    num_nci = (thres_low > gt_probs).sum()
+    num_int = ((thres_low <= gt_probs) & (gt_probs < thres_high)).sum()
+    num_ad = (thres_high <= gt_probs).sum()
+    print(f"{ad_diff_cls / num_ad * 100:.2f} % simulated subjects were"
         " differentially classified from the Alzheimer's disease category.")
-    print(f"{int_diff_cls / num_patients * 100:.2f} % simulated subjects were "
+    print(f"{int_diff_cls / num_int * 100:.2f} % simulated subjects were "
         "differentially classified from the intermediate category.")
-    print(f"{nci_diff_cls / num_patients * 100:.2f} % simulated subjects were "
+    print(f"{nci_diff_cls / num_nci * 100:.2f} % simulated subjects were "
         "differentially classified from the NCI category.")
     print("Fraction of simulated subjects differentially classified: Approximately"
-        f" {(ad_diff_cls + int_diff_cls + nci_diff_cls) / num_patients * 100:.2f}%")
+        f" {(ad_diff_cls + int_diff_cls + nci_diff_cls) / len(gt_probs) * 100:.2f}%")
     print("Total number of differentially classified individuals: "
         f"{(ad_diff_cls + int_diff_cls + nci_diff_cls)}")
 
