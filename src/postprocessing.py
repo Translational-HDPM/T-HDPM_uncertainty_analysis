@@ -161,8 +161,8 @@ def calculate_sens_spec_dual_threshold(cnf_mat: np.ndarray) -> str:
     return string
 
 def calculate_subject_wise_agreement(*,
-                                     gt_arr_dict: dict[int, np.ndarray],
-                                     pred_arr_dict: dict[int, np.ndarray],
+                                     gt_series_dict: dict[int, pd.Series],
+                                     pred_series_dict: dict[int, pd.Series],
                                      uncertainties: list[int],
                                      num_patients: int = 243,
                                      n_samples: int = 1000) -> pd.DataFrame:
@@ -172,15 +172,15 @@ def calculate_subject_wise_agreement(*,
 
     Parameters
     ----------
-    gt_arr_dict
+    gt_series_dict
         Dictionary containing labels for actual data for subjects predicted
         by the classifier. The keys are percent uncertainties and the corresponding
-        values are NumPy arrays with the labels (ordinal encoding, i.e. 0 for NCI,
+        values are Pandas series with the labels (ordinal encoding, i.e. 0 for NCI,
         1 for AD, etc.)
-    pred_arr_dict
+    pred_series_dict
         Dictionary containing labels for simulated data for subjects predicted by 
         the classifier. The keys are percent uncertainties and the corresponding
-        values are NumPy arrays with the labels (ordinal encoding, i.e. 0 for NCI,
+        values are Pandas series with the labels (ordinal encoding, i.e. 0 for NCI,
         1 for AD, etc.)
     uncertainties
         List of integer values representing percent uncertainty values simulated.
@@ -195,20 +195,20 @@ def calculate_subject_wise_agreement(*,
         A Pandas Dataframe with percent values indicating what percent of predictions
         for simulated points agree with the actual classification.
     """
-    subj_wise_agreement = pd.DataFrame(index=np.arange(num_patients)+1,
+    subj_wise_agreement = pd.DataFrame(index=gt_series_dict[uncertainties[0]].index,
                                        columns=[f"{uncert}% uncertainty" \
                                        for uncert in uncertainties])
     for uncertainty in uncertainties:
-        gt = gt_arr_dict[uncertainty].reshape(num_patients, n_samples)
-        preds = pred_arr_dict[uncertainty].reshape(num_patients, n_samples)
+        gt, preds = gt_series_dict[uncertainty], pred_series_dict[uncertainty]
+        preds = preds[gt.index] 
         subj_wise_agreement.loc[:, f"{uncertainty}% uncertainty"] = \
-                (gt == preds).sum(axis=1) / n_samples * 100
+            (np.array(gt.values.tolist()) == np.array(preds.values.tolist())).sum(axis=1) / n_samples * 100
     subj_wise_agreement.index.name = "Patient ID"
     return subj_wise_agreement
 
 def calculate_subject_wise_disagreement(*,
-                        gt_arr_dict: dict[int, np.ndarray],
-                        pred_arr_dict: dict[int, np.ndarray],
+                        gt_series_dict: dict[int, pd.Series],
+                        pred_series_dict: dict[int, pd.Series],
                         uncertainties: list[int],
                         categories: list[str],
                         num_patients: int = 243,
@@ -219,15 +219,15 @@ def calculate_subject_wise_disagreement(*,
 
     Parameters
     ----------
-    gt_arr_dict
+    gt_series_dict
         Dictionary containing labels for actual data for subjects predicted
         by the classifier. The keys are percent uncertainties and the corresponding
-        values are NumPy arrays with the labels (ordinal encoding, i.e. 0 for NCI,
+        values are Pandas series with the labels (ordinal encoding, i.e. 0 for NCI,
         1 for AD, etc.)
-    pred_arr_dict
+    pred_series_dict
         Dictionary containing labels for simulated data for subjects predicted by 
         the classifier. The keys are percent uncertainties and the corresponding
-        values are NumPy arrays with the labels (ordinal encoding, i.e. 0 for NCI,
+        values are Pandas series with the labels (ordinal encoding, i.e. 0 for NCI,
         1 for AD, etc.)
     uncertainties
         List of integer values representing percent uncertainty values simulated.
@@ -245,18 +245,17 @@ def calculate_subject_wise_disagreement(*,
         of simulated points got misclassified as that category.
     """
     subj_wise_disagreement = pd.DataFrame(
-        index=np.arange(num_patients)+1,
+        index=gt_series_dict[uncertainties[0]].index,
           columns=[f"{uncert}% uncertainty: % misclassified as {category}" \
             for uncert in uncertainties for category in categories])
     for uncertainty in uncertainties:
-        gt = gt_arr_dict[uncertainty].reshape(num_patients, n_samples)
-        preds = pred_arr_dict[uncertainty].reshape(num_patients, n_samples)
+        gt, preds = gt_series_dict[uncertainty], pred_series_dict[uncertainty]
+        preds = preds[gt.index]
         for i, cat in enumerate(categories):
             subj_wise_disagreement.loc[:, \
             f"{uncertainty}% uncertainty: % misclassified as {cat}"] = \
-                np.round((preds == i).sum(axis=1) / n_samples * 100, 2)
-        for i in range(num_patients):
-            subj_wise_disagreement.loc[i+1, \
-            f"{uncertainty}% uncertainty: % misclassified as {categories[gt[i, 0]]}"] = np.nan
-    subj_wise_disagreement.index.name = "Patient ID"
+                np.round((np.array(preds.values.tolist()) == i).sum(axis=1) / n_samples * 100, 2)
+        for patient_id in subj_wise_disagreement.index:
+            subj_wise_disagreement.loc[patient_id, \
+            f"{uncertainty}% uncertainty: % misclassified as {categories[gt[patient_id][0]]}"] = np.nan
     return subj_wise_disagreement
