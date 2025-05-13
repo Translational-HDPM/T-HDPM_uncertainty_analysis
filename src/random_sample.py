@@ -4,45 +4,6 @@ Functions to draw random samples from specific probability distributions.
 
 import numpy as np
 
-
-def sample_poisson(lambda_p: float, shape: tuple[int, int]) -> np.ndarray:
-    """
-    Generates random samples of given shape from a Poisson distribution.
-
-    Parameters
-    ----------
-    lambda_p
-        Expected value of the distribution, or the $\lambda$ parameter
-    shape
-        Dimensions of the output sample array
-
-    Returns
-    -------
-    np.ndarray
-        Random sample array of given shape.
-    """
-    return np.random.poisson(lam=lambda_p, size=shape)
-
-def sample_negative_binomial(r: float, p: float, shape: tuple[int, int]) -> np.ndarray:
-    """
-    Generates random samples of given shape from a negative binomial distribution.
-
-    Parameters
-    ----------
-    r
-        Number of successes until the experiment is stopped.
-    p
-        Success probability in each experiment.
-    shape
-        Dimensions of the output sample array
-
-    Returns
-    -------
-    np.ndarray
-        Random sample array of given shape.
-    """
-    return np.random.negative_binomial(r, p, size=shape)
-
 def sample_zero_inflated_poisson(
         lambda_zip: float, pi_zip: float, shape: tuple[int, int]) -> np.ndarray:
     """
@@ -92,6 +53,35 @@ def sample_zero_inflated_negative_binomial(
     res = np.random.negative_binomial(r, p, size=shape)
     res[probs < pi_zinb] = 0.0
     return res
+
+def sample_gaussian_mean_rsd(mu: float | np.ndarray, rel_u: float, n_points: int = 1000) -> np.ndarray:
+    """
+    Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from 
+    a Gaussian distribution corresponding to these.
+
+    Parameters
+    ----------
+    mu
+        Mean of resulting distribution
+    rel_u
+        Relative standard deviation of the distribution
+    n_points
+        Number of points to sample
+
+    Returns
+    -------
+    np.ndarray
+        Random sample array of given shape.
+
+    Raises
+    ------
+    ValueError:
+        Relative uncertainty must be between 0 and 1.
+
+    """
+    if not 0 <= rel_u <= 1:
+        raise ValueError("Relative uncertainty must be between 0 and 1.")
+    return np.random.normal(mu, rel_u * mu, size=n_points)
 
 def sample_poisson_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> np.ndarray:
     r"""
