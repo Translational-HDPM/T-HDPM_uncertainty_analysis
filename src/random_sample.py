@@ -4,8 +4,14 @@ Functions to draw random samples from specific probability distributions.
 
 import numpy as np
 
+type NumpyInt32Array1D = np.ndarray[tuple[int], np.dtype[np.int32]]
+type NumpyInt32Array2D = np.ndarray[tuple[int, int], np.dtype[np.int32]]
+type NumpyFloat32Array1D = np.ndarray[tuple[int], np.dtype[np.float32]]
+type NumpyFloat32Array2D = np.ndarray[tuple[int, int], np.dtype[np.float32]]
+type NumpyFloat64Array1D = np.ndarray[tuple[int], np.dtype[np.float64]]
+
 def sample_zero_inflated_poisson(
-        lambda_zip: float, pi_zip: float, shape: tuple[int, int]) -> np.ndarray:
+        lambda_zip: float, pi_zip: float, shape: tuple[int, int]) -> NumpyInt32Array2D:
     """
     Generates random samples of given shape from a zero-inflated Poisson distribution.
 
@@ -29,7 +35,7 @@ def sample_zero_inflated_poisson(
     return res
 
 def sample_zero_inflated_negative_binomial(
-        r: float, p: float, pi_zinb: float, shape: tuple[int, int]) -> np.ndarray:
+        r: float, p: float, pi_zinb: float, shape: tuple[int, int]) -> NumpyInt32Array2D:
     """
     Generates random samples of given shape from a zero-inflated negative binomial distribution.
 
@@ -54,7 +60,7 @@ def sample_zero_inflated_negative_binomial(
     res[probs < pi_zinb] = 0.0
     return res
 
-def sample_gaussian_mean_rsd(mu: float | np.ndarray, rel_u: float, n_points: int = 1000) -> np.ndarray:
+def sample_gaussian_mean_rsd(mu: float | np.ndarray, rel_u: float, n_points: int = 1000) -> float | NumpyFloat64Array1D:
     """
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from 
     a Gaussian distribution corresponding to these.
@@ -83,7 +89,7 @@ def sample_gaussian_mean_rsd(mu: float | np.ndarray, rel_u: float, n_points: int
         raise ValueError("Relative uncertainty must be between 0 and 1.")
     return np.random.normal(mu, rel_u * mu, size=n_points)
 
-def sample_poisson_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> np.ndarray:
+def sample_poisson_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> NumpyFloat32Array1D:
     r"""
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from 
     a Poisson distribution corresponding to these.
@@ -128,7 +134,7 @@ def sample_poisson_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> np.n
     return mu * (rel_u ** 2) * np.random.poisson(lam=1 / rel_u**2.0, size=n_points)
 
 def sample_zero_inflated_poisson_mean_rsd(
-        mu: int, rel_u: float, n_points: int = 1000) -> np.ndarray:
+        mu: int, rel_u: float, n_points: int = 1000) -> NumpyInt32Array1D:
     r"""
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from 
     a zero-inflated Poisson distribution corresponding to these.
@@ -204,7 +210,7 @@ def sample_zero_inflated_poisson_mean_rsd(
     res[probs < pi_zip] = 0.0
     return res
 
-def sample_negative_binomial_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> np.ndarray:
+def sample_negative_binomial_mean_rsd(mu: int, rel_u: float, n_points: int = 1000) -> NumpyInt32Array1D:
     r"""
     Given a mean ($X$) and uncertainty % (relative standard deviation) $k$, sample from 
     a negative binomial distribution corresponding to these.
@@ -283,7 +289,7 @@ def sample_negative_binomial_mean_rsd(mu: int, rel_u: float, n_points: int = 100
     return np.random.negative_binomial(r, p, size=n_points)
 
 def sample_zero_inflated_negative_binomial_mean_rsd(
-        mu: int, rel_u: float, pi_zinb: float, n_points: int = 1000) -> np.ndarray:
+        mu: int, rel_u: float, pi_zinb: float, n_points: int = 1000) -> NumpyInt32Array1D:
     r"""
     Given a mean ($X$) and uncertainty % (relative standard deviation) $k$, sample 
     from a zero-inflated negative binomial distribution corresponding to these.
@@ -345,7 +351,7 @@ def sample_zero_inflated_negative_binomial_mean_rsd(
     res[probs < pi_zinb] = 0.0
     return res
 
-def sample_gamma_mean_rsd(mu: float, rel_u: float, n_points: int) -> np.ndarray:
+def sample_gamma_mean_rsd(mu: float, rel_u: float, n_points: int) -> NumpyFloat64Array1D:
     """
     Given a mean and uncertainty % (relative standard deviation), sample from a Gamma 
     distribution corresponding to these.
@@ -376,7 +382,7 @@ def sample_gamma_mean_rsd(mu: float, rel_u: float, n_points: int) -> np.ndarray:
         mu += 1.0
     return np.random.gamma(1 / (rel_u ** 2), mu * rel_u ** 2, size=n_points)
 
-def sample_lognormal_mean_rsd(mu: float, rel_u: float, n_points: int) -> np.ndarray:
+def sample_lognormal_mean_rsd(mu: float, rel_u: float, n_points: int) -> NumpyFloat64Array1D:
     """
     Given a mean and uncertainty % (relative standard deviation), sample from a 
     log normal distribution corresponding to these.

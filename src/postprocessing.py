@@ -7,8 +7,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+type NumpyFloat32Array1D = np.ndarray[tuple[int], np.dtype[np.float32]]
+type NumpyFloat32Array2D = np.ndarray[tuple[int, int], np.dtype[np.float32]]
 
-def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str], title: Optional[str] = None) -> None:
+def plot_confusion_matrix(cnf_mat: NumpyFloat32Array2D, categories: list[str], title: Optional[str] = None) -> None:
     """
     Plot confusion matrix for simulation output.
 
@@ -41,7 +43,8 @@ def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str], title: Opt
 
 def display_differential_classification_results_one_threshold(*,
               ad_diff_cls: int, nci_diff_cls: int, 
-              gt_probs: np.ndarray, thres: float) -> None:
+              gt_probs: NumpyFloat32Array1D, 
+              thres: float) -> None:
     """
     Calculate metrics of differential classification and display results (single threshold).
 
@@ -71,7 +74,7 @@ def display_differential_classification_results_two_thresholds(*,
        ad_diff_cls: int, 
        int_diff_cls: int, 
        nci_diff_cls: int,
-       gt_probs: np.ndarray,
+       gt_probs: NumpyFloat32Array1D,
        thres_low: float,
        thres_high: float) -> None:
     """
@@ -108,7 +111,7 @@ def display_differential_classification_results_two_thresholds(*,
         f"{(ad_diff_cls + int_diff_cls + nci_diff_cls)}")
 
 
-def calculate_sens_spec_dual_threshold(cnf_mat: np.ndarray) -> str:
+def calculate_sens_spec_dual_threshold(cnf_mat: NumpyFloat32Array2D) -> str:
     """
     Calculates and displays sensitivity and specificity for Alzheimer's disease (AD)
     and NCI categories from a confusion matrix for results from dual threshold simulations.
@@ -261,8 +264,8 @@ def calculate_subject_wise_disagreement(*,
     return subj_wise_disagreement
 
 
-def plot_bland_altman(arr_1: np.ndarray[np.float32], 
-                      arr_2: np.ndarray[np.float32], 
+def plot_bland_altman(arr_1: NumpyFloat32Array1D, 
+                      arr_2: NumpyFloat32Array1D, 
                       title: str,
                       *,
                       save: bool = False,
