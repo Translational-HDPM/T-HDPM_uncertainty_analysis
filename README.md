@@ -59,8 +59,8 @@ pip install pandas numpy matplotlib seaborn
 1. **Clone (or Download) This Repository**
 
 ```bash
-git clone https://github.com/debajyotid2/uncertainty_analysis.git
-cd uncertainty_analysis
+git clone https://github.com/Translational-HDPM/T-HDPM_uncertainty_analysis.git
+cd T-HDPM_uncertainty_analysis
 ```
 
 2. **Install Dependencies**
