@@ -10,7 +10,7 @@ import statsmodels.discrete.count_model as cm
 import statsmodels.discrete.discrete_model as smd
 
 
-def test_gamma_fit(data: np.ndarray) -> tuple[float, float, float, float, float]:
+def test_gamma_fit(data: np.ndarray[np.float32]) -> tuple[float, float, float, float, float]:
     """
     Performs Kolmogorov-Smirnov (KS) Test on the fit of the gamma distribution on given data.
 
@@ -28,7 +28,7 @@ def test_gamma_fit(data: np.ndarray) -> tuple[float, float, float, float, float]
     ks_stat, p_value = st.kstest(data+1, "gamma", args=(fit_alpha, fit_loc, fit_beta))
     return ks_stat, p_value, fit_alpha, fit_loc, fit_beta
 
-def test_lognormal_fit_ks(data: np.ndarray) -> tuple[float, float, float, float, float]:
+def test_lognormal_fit_ks(data: np.ndarray[np.float32]) -> tuple[float, float, float, float, float]:
     """
     Performs Kolmogorov-Smirnov (KS) Test on the fit of the log normal distribution on given data.
 
@@ -48,7 +48,7 @@ def test_lognormal_fit_ks(data: np.ndarray) -> tuple[float, float, float, float,
     ks_stat, p_value = st.kstest(data, 'lognorm', args=(fit_shape, fit_loc, fit_scale))
     return ks_stat, p_value, fit_shape, fit_loc, fit_scale
 
-def test_lognormal_fit_sw(data: np.ndarray) -> tuple[float, float]:
+def test_lognormal_fit_sw(data: np.ndarray[np.float32]) -> tuple[float, float]:
     """
     Performs Shapiro-Wilk Test on the fit of the log normal distribution on given data.
 
