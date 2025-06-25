@@ -27,7 +27,7 @@ def test_gamma_fit(data: NumpyFloat32Array1D) -> tuple[float, float, float, floa
     """
     fit_alpha, fit_loc, fit_beta = st.gamma.fit(data+1, floc=0)
     ks_stat, p_value = st.kstest(data+1, "gamma", args=(fit_alpha, fit_loc, fit_beta))
-    return ks_stat, p_value, fit_alpha, fit_loc, fit_beta
+    return float(ks_stat), float(p_value), float(fit_alpha), float(fit_loc), float(fit_beta)
 
 def test_lognormal_fit_ks(data: NumpyFloat32Array1D) -> tuple[float, float, float, float, float]:
     """
@@ -47,7 +47,7 @@ def test_lognormal_fit_ks(data: NumpyFloat32Array1D) -> tuple[float, float, floa
         data += 1
     fit_shape, fit_loc, fit_scale = st.lognorm.fit(data, floc=0)
     ks_stat, p_value = st.kstest(data, 'lognorm', args=(fit_shape, fit_loc, fit_scale))
-    return ks_stat, p_value, fit_shape, fit_loc, fit_scale
+    return float(ks_stat), float(p_value), float(fit_shape), float(fit_loc), float(fit_scale)
 
 def test_lognormal_fit_sw(data: NumpyFloat32Array1D) -> tuple[float, float]:
     """
@@ -67,7 +67,7 @@ def test_lognormal_fit_sw(data: NumpyFloat32Array1D) -> tuple[float, float]:
         data += 1
     log_data = np.log2(data)
     stat, p_value = st.shapiro(log_data)
-    return stat, p_value
+    return float(stat), float(p_value)
 
 def test_negative_binomial_fit(data_arg: Sequence[float]) -> tuple[float, float, float, float, float]:
     """
@@ -89,10 +89,10 @@ def test_negative_binomial_fit(data_arg: Sequence[float]) -> tuple[float, float,
     alpha, lambda_nb = nb_results.params[1], np.exp(nb_results.params[0])
     r = 1.0 / alpha
     p = r / (r + lambda_nb)
-    def cdf_nb(x: Sequence[float]) -> np.ndarray:
+    def cdf_nb(x: Sequence[float]) -> NumpyFloat32Array1D:
         return st.nbinom.cdf(x, r, p)
     ks_stat, p_value = st.kstest(data, cdf_nb)
-    return nb_results.aic, ks_stat, p_value, r, p
+    return float(nb_results.aic), float(ks_stat), float(p_value), float(r), float(p)
 
 def test_poisson_fit(data_arg: Sequence[float]) -> tuple[float, float, float, float]:
     """
@@ -113,10 +113,10 @@ def test_poisson_fit(data_arg: Sequence[float]) -> tuple[float, float, float, fl
     poisson_model = smd.Poisson(data, np.ones_like(data)[:, np.newaxis])
     poisson_results = poisson_model.fit(disp=0)
     lambda_p = np.exp(poisson_results.params[0])
-    def cdf_p(x_arg: Sequence[float]) -> np.ndarray:
+    def cdf_p(x_arg: Sequence[float]) -> NumpyFloat32Array1D:
         return st.poisson.cdf(x_arg, mu=lambda_p)
     ks_stat, p_value = st.kstest(data, cdf_p)
-    return poisson_results.aic, ks_stat, p_value, lambda_p
+    return float(poisson_results.aic), float(ks_stat), float(p_value), float(lambda_p)
 
 def test_zero_inflated_poisson_fit(data_arg: Sequence[float]) \
             -> tuple[float, float, float, float, float]:
@@ -152,7 +152,7 @@ def test_zero_inflated_poisson_fit(data_arg: Sequence[float]) \
         return cdf
 
     ks_stat, p_value = st.kstest(data, cdf_zip)
-    return zip_results.aic, ks_stat, p_value, lambda_zip, pi_zip
+    return float(zip_results.aic), float(ks_stat), float(p_value), float(lambda_zip), float(pi_zip)
 
 def test_zero_inflated_negative_binomial_fit(data_arg: Sequence[float]) ->\
                 tuple[float, float, float, float, float, float]:
@@ -192,4 +192,4 @@ def test_zero_inflated_negative_binomial_fit(data_arg: Sequence[float]) ->\
         return cdf
 
     ks_stat, p_value = st.kstest(data, cdf_zinb)
-    return zinb_results.aic, ks_stat, p_value, r, p, pi_zinb
+    return float(zinb_results.aic), float(ks_stat), float(p_value), float(r), float(p), float(pi_zinb)
