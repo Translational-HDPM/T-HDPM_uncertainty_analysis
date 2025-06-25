@@ -1,14 +1,16 @@
 """
 Functions for post-processing (visualization and downstream analysis) of simulation results.
 """
-from typing import Optional
+from typing import Optional, Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
+type NumpyFloat32Array1D = np.ndarray[tuple[int], np.dtype[np.float32]]
+type NumpyFloat32Array2D = np.ndarray[tuple[int, int], np.dtype[np.float32]]
 
-def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str], title: Optional[str] = None) -> None:
+def plot_confusion_matrix(cnf_mat: NumpyFloat32Array2D, categories: list[str], title: Optional[str] = None) -> None:
     """
     Plot confusion matrix for simulation output.
 
@@ -41,7 +43,8 @@ def plot_confusion_matrix(cnf_mat: np.ndarray, categories: list[str], title: Opt
 
 def display_differential_classification_results_one_threshold(*,
               ad_diff_cls: int, nci_diff_cls: int, 
-              gt_probs: np.ndarray, thres: float) -> None:
+              gt_probs: NumpyFloat32Array1D, 
+              thres: float) -> None:
     """
     Calculate metrics of differential classification and display results (single threshold).
 
@@ -71,7 +74,7 @@ def display_differential_classification_results_two_thresholds(*,
        ad_diff_cls: int, 
        int_diff_cls: int, 
        nci_diff_cls: int,
-       gt_probs: np.ndarray,
+       gt_probs: NumpyFloat32Array1D,
        thres_low: float,
        thres_high: float) -> None:
     """
@@ -108,7 +111,7 @@ def display_differential_classification_results_two_thresholds(*,
         f"{(ad_diff_cls + int_diff_cls + nci_diff_cls)}")
 
 
-def calculate_sens_spec_dual_threshold(cnf_mat: np.ndarray) -> str:
+def calculate_sens_spec_dual_threshold(cnf_mat: NumpyFloat32Array2D) -> str:
     """
     Calculates and displays sensitivity and specificity for Alzheimer's disease (AD)
     and NCI categories from a confusion matrix for results from dual threshold simulations.
@@ -259,3 +262,122 @@ def calculate_subject_wise_disagreement(*,
             subj_wise_disagreement.loc[patient_id, \
             f"{uncertainty}% uncertainty: % misclassified as {categories[gt[patient_id][0]]}"] = np.nan
     return subj_wise_disagreement
+
+
+def plot_bland_altman(arr_1: NumpyFloat32Array1D, 
+                      arr_2: NumpyFloat32Array1D, 
+                      title: str,
+                      *,
+                      save: bool = False,
+                      show: bool = True) -> None:
+    """
+    Generate a Bland-Altman plot for two sets of measurements `arr_1` and `arr_2`.
+
+    Parameters
+    ----------
+    arr_1
+        An np.ndarray of float32 values representing a set of measurements from
+        an assay.
+    arr_2
+        Another np.ndarray of float32 values representing a set of measurements 
+        from a second assay. arr_1 and arr_2 should be of the same shape.
+    title
+        Title of the plot
+    save
+        Whether to save the generated plot. If True, saves the plot as a PNG image
+        of the same name as the title.
+    show
+        Whether to display the generated plot.   
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError:
+        If the shapes of arr_1 and arr_2 mismatch, a `ValueError` is raised.
+    """
+    if arr_1.shape != arr_2.shape:
+        raise ValueError("Shape mismatch between arr_1 and arr_2.")
+        
+    # Compute the average and difference of the two methods
+    mean_measurements = (arr_1 + arr_2) / 2.0
+    differences = arr_1 - arr_2
+    
+    # Compute statistics
+    mean_diff = np.mean(differences)
+    std_diff = np.std(differences, ddof=1)
+    
+    # Limits of agreement (mean difference ± 1.96*SD)
+    loa_upper = mean_diff + 1.96 * std_diff
+    loa_lower = mean_diff - 1.96 * std_diff
+    
+    # Plot Bland-Altman plot
+    plt.figure(figsize=(8, 5))
+    plt.scatter(mean_measurements, differences, color='blue', alpha=0.7)
+    plt.axhline(mean_diff, color='gray', linestyle='--', label=f"Mean diff = {mean_diff:.2f}")
+    plt.axhline(loa_upper, color='red', linestyle='--', label=f"Upper LoA = {loa_upper:.2f}")
+    plt.axhline(loa_lower, color='red', linestyle='--', label=f"Lower LoA = {loa_lower:.2f}")
+    
+    plt.xlabel("Mean of two measurements")
+    plt.ylabel("Difference between measurements")
+    plt.ylim([1.5 * loa_lower, 1.5 * loa_upper])
+    plt.title(title)
+    plt.legend()
+    if save:
+        plt.savefig(f"{title}.png")
+    if show:
+        plt.show()
+        return
+    plt.close()
+
+def plot_v_plot(subj_wise_agreement: pd.DataFrame, 
+                gt_probs: pd.Series, 
+                uncertainties: Sequence[int], 
+                title: str, 
+                show_axis_labels: bool = True, 
+                show_legend: bool = False) -> None:
+    """
+    Creates a v-plot between the agreement of simulated scores and classifier scores for 
+    subjects against the inferent probability scores of the subjects.
+
+    Parameters
+    ----------
+    subj_wise_agreement
+        A dataframe containing percent agreement between simulated and classifier scores
+        at different percentages of simulated uncertainties.
+    gt_probs
+        Probability values from the classifier for the original data of TPM for the patients.
+    uncertainties
+        Simulated percentage values of uncertainties.
+    title
+        Title for the generated plot.
+    show_axis_labels
+        Whether to show axis labels in the generated plot.
+    show_legend
+        Whether to show a legend in the generated plot.
+
+    Returns
+    -------
+    None
+    """
+    gt_probs = gt_probs.sort_values()
+    _temp = subj_wise_agreement.loc[gt_probs.index, :]
+    _max_alpha = [np.min(uncertainties), np.median(uncertainties), np.max(uncertainties)]
+    for uncert in uncertainties:
+        if uncert in _max_alpha:
+            plt.plot(gt_probs, 
+                    _temp[f"{uncert}% uncertainty"], 
+                    label=f"{uncert}% uncertainty")
+        else:
+            plt.plot(gt_probs, 
+                    _temp[f"{uncert}% uncertainty"], 
+                    label=f"{uncert}% uncertainty", 
+                    alpha=0.2)
+    plt.title(title)
+    if show_axis_labels:
+        plt.xlabel("Probability score")
+        plt.ylabel("Percent agreement between simulated and\n inferent scores for subjects")
+    if show_legend:
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=len(uncertainties)//3)
