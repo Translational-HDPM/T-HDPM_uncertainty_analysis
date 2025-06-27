@@ -110,7 +110,6 @@ def display_differential_classification_results_two_thresholds(*,
     print("Total number of differentially classified individuals: "
         f"{(ad_diff_cls + int_diff_cls + nci_diff_cls)}")
 
-
 def calculate_sens_spec_dual_threshold(cnf_mat: NumpyFloat32Array2D) -> str:
     """
     Calculates and displays sensitivity and specificity for Alzheimer's disease (AD)
@@ -263,7 +262,6 @@ def calculate_subject_wise_disagreement(*,
             f"{uncertainty}% uncertainty: % misclassified as {categories[gt[patient_id][0]]}"] = np.nan
     return subj_wise_disagreement
 
-
 def plot_bland_altman(arr_1: NumpyFloat32Array1D, 
                       arr_2: NumpyFloat32Array1D, 
                       title: str,
@@ -295,7 +293,7 @@ def plot_bland_altman(arr_1: NumpyFloat32Array1D,
 
     Raises
     ------
-    ValueError:
+    ValueError
         If the shapes of arr_1 and arr_2 mismatch, a `ValueError` is raised.
     """
     if arr_1.shape != arr_2.shape:
@@ -381,3 +379,82 @@ def plot_v_plot(subj_wise_agreement: pd.DataFrame,
         plt.ylabel("Percent agreement between simulated and\n inferent scores for subjects")
     if show_legend:
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=len(uncertainties)//3)
+
+def generate_waterfall_plot(*,
+                            threshold: float, 
+                            probs: pd.Series, 
+                            color_labels_data: pd.Series, 
+                            labels: dict[int, str],
+                            colors: list[str],
+                            title: str,
+                            save: bool = False) -> None:
+    """
+    Creates a waterfall plot showing a comparison between predictions by a binary
+    classifier against the "true classes" specified by the `color_labels_data`.
+    In `color_labels_data` the classes are integer values for which the `labels` 
+    dictionary provides the string representations. 
+
+    Parameters
+    ----------
+    threshold
+        The probability cut-point which acts as the binary decision point.
+    probs
+        Probability values from the classifier for the original data of TPM for the patients.
+    color_labels_data
+        A Pandas series with integer labels corresponding to classification according to some
+        criterion, e.g. modeled measurement uncertainty.
+    labels
+        Dictionary containing string labels corresponding to integer values for classes in 
+        `color_labels_data`.
+    colors
+        Hex codes for colors for bars for each unique label.
+    title
+        Title for the plot.
+    save
+        Whether to save the generated plot. If specified as true, saves the plot as a PNG image
+        of the same name as the title.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+        1. If `threshold` is not between 0 and 1.
+        2. If the indexes of the `probs` and `color_labels_data` Series do not match. This is
+           required to ensure matching probabilities with the color labels when they are 
+           combined into a dataframe.
+        3. If the number of colors specified is not the same as the number of unique labels.
+    """
+
+    # Check for threshold to be between 0 and 1
+    if not 0 < threshold < 1:
+        raise ValueError("Threshold must be between 0 and 1.")
+    # Check for the indexes of probs and color_labels to be the same
+    if not probs.index.tolist() == color_labels_data.index.tolist():
+        raise ValueError("Indexes of probs and color_labels_data must be identical.")
+    if not len(colors) == len(labels):
+        raise ValueError("Must supply a list of colors of same length as the number of unique labels.")
+
+    probs_df = pd.DataFrame(index=probs.index)
+    probs_df["probs"] = probs
+    probs_df["color_labels"] = color_labels_data
+    probs_df.sort_values(by="probs", inplace=True)
+
+    probs_df["x"] = np.linspace(-1, 40, probs.shape[0])
+    probs_df["probs"] -= threshold
+
+    plt.figure(figsize=(12, 8))
+    unique_labels = probs_df["color_labels"].unique()
+
+    for label, color in zip(unique_labels, colors):
+        filt = probs_df["color_labels"] == label
+        plt.bar(probs_df.loc[filt, "x"], probs_df.loc[filt, "probs"], width=0.2, color=color, label=labels[label])
+    plt.xticks([])
+    plt.ylabel("Classifier score")
+    plt.legend()
+    plt.title(title, fontsize=15)
+    if save:
+        plt.savefig(f"{title}.png")
+    plt.show()
