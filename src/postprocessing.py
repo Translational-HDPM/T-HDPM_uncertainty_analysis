@@ -1,16 +1,19 @@
 """
 Functions for post-processing (visualization and downstream analysis) of simulation results.
 """
+
 from typing import Optional, Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
-type NumpyFloat32Array1D = np.ndarray[tuple[int], np.dtype[np.float32]]
-type NumpyFloat32Array2D = np.ndarray[tuple[int, int], np.dtype[np.float32]]
+from .dtypes import NumpyFloat32Array1D, NumpyFloat32Array2D
 
-def plot_confusion_matrix(cnf_mat: NumpyFloat32Array2D, categories: list[str], title: Optional[str] = None) -> None:
+
+def plot_confusion_matrix(
+    cnf_mat: NumpyFloat32Array2D, categories: list[str], title: Optional[str] = None
+) -> None:
     """
     Plot confusion matrix for simulation output.
 
@@ -29,8 +32,12 @@ def plot_confusion_matrix(cnf_mat: NumpyFloat32Array2D, categories: list[str], t
         Dimension of confusion matrix does not match the number of categories.
     """
     if cnf_mat.shape[0] != len(categories):
-        raise ValueError("Dimension of confusion matrix does not match the number of categories.")
-    cnf_mat_df = pd.DataFrame(cnf_mat.astype(np.int64), index=categories, columns=categories)
+        raise ValueError(
+            "Dimension of confusion matrix does not match the number of categories."
+        )
+    cnf_mat_df = pd.DataFrame(
+        cnf_mat.astype(np.int64), index=categories, columns=categories
+    )
     plt.figure(figsize=(8, 8))
     sns.heatmap(cnf_mat_df, annot=True, cbar=False, fmt="g")
     plt.xlabel("Predicted")
@@ -41,10 +48,10 @@ def plot_confusion_matrix(cnf_mat: NumpyFloat32Array2D, categories: list[str], t
         plt.title("Confusion matrix")
     plt.show()
 
-def display_differential_classification_results_one_threshold(*,
-              ad_diff_cls: int, nci_diff_cls: int, 
-              gt_probs: NumpyFloat32Array1D, 
-              thres: float) -> None:
+
+def display_differential_classification_results_one_threshold(
+    *, ad_diff_cls: int, nci_diff_cls: int, gt_probs: NumpyFloat32Array1D, thres: float
+) -> None:
     """
     Calculate metrics of differential classification and display results (single threshold).
 
@@ -61,24 +68,35 @@ def display_differential_classification_results_one_threshold(*,
     """
     num_nci = (thres > gt_probs).sum()
     num_ad = (thres <= gt_probs).sum()
-    print(f"{ad_diff_cls / num_ad * 100:.2f} % simulated subjects were "
-        "differentially classified from the Alzheimer's disease category.")
-    print(f"{nci_diff_cls / num_nci * 100:.2f} % simulated subjects were "
-        "differentially classified from the NCI category.")
-    print(f"{(ad_diff_cls + nci_diff_cls) / len(gt_probs) * 100:.2f} % simulated"
-        " subjects were differentially classified between AD and NCI categories.")
-    print("Total number of differentially classified individuals: "
-        f"{(ad_diff_cls + nci_diff_cls)}")
+    print(
+        f"{ad_diff_cls / num_ad * 100:.2f} % simulated subjects were "
+        "differentially classified from the Alzheimer's disease category."
+    )
+    print(
+        f"{nci_diff_cls / num_nci * 100:.2f} % simulated subjects were "
+        "differentially classified from the NCI category."
+    )
+    print(
+        f"{(ad_diff_cls + nci_diff_cls) / len(gt_probs) * 100:.2f} % simulated"
+        " subjects were differentially classified between AD and NCI categories."
+    )
+    print(
+        "Total number of differentially classified individuals: "
+        f"{(ad_diff_cls + nci_diff_cls)}"
+    )
 
-def display_differential_classification_results_two_thresholds(*,
-       ad_diff_cls: int, 
-       int_diff_cls: int, 
-       nci_diff_cls: int,
-       gt_probs: NumpyFloat32Array1D,
-       thres_low: float,
-       thres_high: float) -> None:
+
+def display_differential_classification_results_two_thresholds(
+    *,
+    ad_diff_cls: int,
+    int_diff_cls: int,
+    nci_diff_cls: int,
+    gt_probs: NumpyFloat32Array1D,
+    thres_low: float,
+    thres_high: float,
+) -> None:
     """
-    Calculate metrics of differential classification and display results (two 
+    Calculate metrics of differential classification and display results (two
     thresholds).
 
     Parameters
@@ -99,16 +117,27 @@ def display_differential_classification_results_two_thresholds(*,
     num_nci = (thres_low > gt_probs).sum()
     num_int = ((thres_low <= gt_probs) & (gt_probs < thres_high)).sum()
     num_ad = (thres_high <= gt_probs).sum()
-    print(f"{ad_diff_cls / num_ad * 100:.2f} % simulated subjects were"
-        " differentially classified from the Alzheimer's disease category.")
-    print(f"{int_diff_cls / num_int * 100:.2f} % simulated subjects were "
-        "differentially classified from the intermediate category.")
-    print(f"{nci_diff_cls / num_nci * 100:.2f} % simulated subjects were "
-        "differentially classified from the NCI category.")
-    print("Fraction of simulated subjects differentially classified: Approximately"
-        f" {(ad_diff_cls + int_diff_cls + nci_diff_cls) / len(gt_probs) * 100:.2f}%")
-    print("Total number of differentially classified individuals: "
-        f"{(ad_diff_cls + int_diff_cls + nci_diff_cls)}")
+    print(
+        f"{ad_diff_cls / num_ad * 100:.2f} % simulated subjects were"
+        " differentially classified from the Alzheimer's disease category."
+    )
+    print(
+        f"{int_diff_cls / num_int * 100:.2f} % simulated subjects were "
+        "differentially classified from the intermediate category."
+    )
+    print(
+        f"{nci_diff_cls / num_nci * 100:.2f} % simulated subjects were "
+        "differentially classified from the NCI category."
+    )
+    print(
+        "Fraction of simulated subjects differentially classified: Approximately"
+        f" {(ad_diff_cls + int_diff_cls + nci_diff_cls) / len(gt_probs) * 100:.2f}%"
+    )
+    print(
+        "Total number of differentially classified individuals: "
+        f"{(ad_diff_cls + int_diff_cls + nci_diff_cls)}"
+    )
+
 
 def calculate_sens_spec_dual_threshold(cnf_mat: NumpyFloat32Array2D) -> str:
     """
@@ -162,12 +191,15 @@ def calculate_sens_spec_dual_threshold(cnf_mat: NumpyFloat32Array2D) -> str:
     """
     return string
 
-def calculate_subject_wise_agreement(*,
-                                     gt_series_dict: dict[int, pd.Series],
-                                     pred_series_dict: dict[int, pd.Series],
-                                     uncertainties: list[int],
-                                     num_patients: int = 243,
-                                     n_samples: int = 1000) -> pd.DataFrame:
+
+def calculate_subject_wise_agreement(
+    *,
+    gt_series_dict: dict[int, pd.Series],
+    pred_series_dict: dict[int, pd.Series],
+    uncertainties: list[int],
+    num_patients: int = 243,
+    n_samples: int = 1000,
+) -> pd.DataFrame:
     """
     Calculate the percent of simulated predictions that agree with the actual
     prediction for each subject.
@@ -180,7 +212,7 @@ def calculate_subject_wise_agreement(*,
         values are Pandas series with the labels (ordinal encoding, i.e. 0 for NCI,
         1 for AD, etc.)
     pred_series_dict
-        Dictionary containing labels for simulated data for subjects predicted by 
+        Dictionary containing labels for simulated data for subjects predicted by
         the classifier. The keys are percent uncertainties and the corresponding
         values are Pandas series with the labels (ordinal encoding, i.e. 0 for NCI,
         1 for AD, etc.)
@@ -197,24 +229,33 @@ def calculate_subject_wise_agreement(*,
         A Pandas Dataframe with percent values indicating what percent of predictions
         for simulated points agree with the actual classification.
     """
-    subj_wise_agreement = pd.DataFrame(index=gt_series_dict[uncertainties[0]].index,
-                                       columns=[f"{uncert}% uncertainty" \
-                                       for uncert in uncertainties])
+    subj_wise_agreement = pd.DataFrame(
+        index=gt_series_dict[uncertainties[0]].index,
+        columns=[f"{uncert}% uncertainty" for uncert in uncertainties],
+    )
     for uncertainty in uncertainties:
         gt, preds = gt_series_dict[uncertainty], pred_series_dict[uncertainty]
-        preds = preds[gt.index] 
-        subj_wise_agreement.loc[:, f"{uncertainty}% uncertainty"] = \
-            (np.array(gt.values.tolist()) == np.array(preds.values.tolist())).sum(axis=1) / n_samples * 100
+        preds = preds[gt.index]
+        subj_wise_agreement.loc[:, f"{uncertainty}% uncertainty"] = (
+            (np.array(gt.values.tolist()) == np.array(preds.values.tolist())).sum(
+                axis=1
+            )
+            / n_samples
+            * 100
+        )
     subj_wise_agreement.index.name = "Patient ID"
     return subj_wise_agreement
 
-def calculate_subject_wise_disagreement(*,
-                        gt_series_dict: dict[int, pd.Series],
-                        pred_series_dict: dict[int, pd.Series],
-                        uncertainties: list[int],
-                        categories: list[str],
-                        num_patients: int = 243,
-                        n_samples: int = 1000) -> pd.DataFrame:
+
+def calculate_subject_wise_disagreement(
+    *,
+    gt_series_dict: dict[int, pd.Series],
+    pred_series_dict: dict[int, pd.Series],
+    uncertainties: list[int],
+    categories: list[str],
+    num_patients: int = 243,
+    n_samples: int = 1000,
+) -> pd.DataFrame:
     """
     Calculate the percent of simulated predictions that do not agree with the actual
     prediction for each subject.
@@ -227,7 +268,7 @@ def calculate_subject_wise_disagreement(*,
         values are Pandas series with the labels (ordinal encoding, i.e. 0 for NCI,
         1 for AD, etc.)
     pred_series_dict
-        Dictionary containing labels for simulated data for subjects predicted by 
+        Dictionary containing labels for simulated data for subjects predicted by
         the classifier. The keys are percent uncertainties and the corresponding
         values are Pandas series with the labels (ordinal encoding, i.e. 0 for NCI,
         1 for AD, etc.)
@@ -243,31 +284,42 @@ def calculate_subject_wise_disagreement(*,
     Returns
     -------
     pd.DataFrame
-        A Pandas Dataframe with category-wise percent values indicating what percent 
+        A Pandas Dataframe with category-wise percent values indicating what percent
         of simulated points got misclassified as that category.
     """
     subj_wise_disagreement = pd.DataFrame(
         index=gt_series_dict[uncertainties[0]].index,
-          columns=[f"{uncert}% uncertainty: % misclassified as {category}" \
-            for uncert in uncertainties for category in categories])
+        columns=[
+            f"{uncert}% uncertainty: % misclassified as {category}"
+            for uncert in uncertainties
+            for category in categories
+        ],
+    )
     for uncertainty in uncertainties:
         gt, preds = gt_series_dict[uncertainty], pred_series_dict[uncertainty]
         preds = preds[gt.index]
         for i, cat in enumerate(categories):
-            subj_wise_disagreement.loc[:, \
-            f"{uncertainty}% uncertainty: % misclassified as {cat}"] = \
-                np.round((np.array(preds.values.tolist()) == i).sum(axis=1) / n_samples * 100, 2)
+            subj_wise_disagreement.loc[
+                :, f"{uncertainty}% uncertainty: % misclassified as {cat}"
+            ] = np.round(
+                (np.array(preds.values.tolist()) == i).sum(axis=1) / n_samples * 100, 2
+            )
         for patient_id in subj_wise_disagreement.index:
-            subj_wise_disagreement.loc[patient_id, \
-            f"{uncertainty}% uncertainty: % misclassified as {categories[gt[patient_id][0]]}"] = np.nan
+            subj_wise_disagreement.loc[
+                patient_id,
+                f"{uncertainty}% uncertainty: % misclassified as {categories[gt[patient_id][0]]}",
+            ] = np.nan
     return subj_wise_disagreement
 
-def plot_bland_altman(arr_1: NumpyFloat32Array1D, 
-                      arr_2: NumpyFloat32Array1D, 
-                      title: str,
-                      *,
-                      save: bool = False,
-                      show: bool = True) -> None:
+
+def plot_bland_altman(
+    arr_1: NumpyFloat32Array1D,
+    arr_2: NumpyFloat32Array1D,
+    title: str,
+    *,
+    save: bool = False,
+    show: bool = True,
+) -> None:
     """
     Generate a Bland-Altman plot for two sets of measurements `arr_1` and `arr_2`.
 
@@ -277,7 +329,7 @@ def plot_bland_altman(arr_1: NumpyFloat32Array1D,
         An np.ndarray of float32 values representing a set of measurements from
         an assay.
     arr_2
-        Another np.ndarray of float32 values representing a set of measurements 
+        Another np.ndarray of float32 values representing a set of measurements
         from a second assay. arr_1 and arr_2 should be of the same shape.
     title
         Title of the plot
@@ -285,7 +337,7 @@ def plot_bland_altman(arr_1: NumpyFloat32Array1D,
         Whether to save the generated plot. If True, saves the plot as a PNG image
         of the same name as the title.
     show
-        Whether to display the generated plot.   
+        Whether to display the generated plot.
 
     Returns
     -------
@@ -298,26 +350,32 @@ def plot_bland_altman(arr_1: NumpyFloat32Array1D,
     """
     if arr_1.shape != arr_2.shape:
         raise ValueError("Shape mismatch between arr_1 and arr_2.")
-        
+
     # Compute the average and difference of the two methods
     mean_measurements = (arr_1 + arr_2) / 2.0
     differences = arr_1 - arr_2
-    
+
     # Compute statistics
     mean_diff = np.mean(differences)
     std_diff = np.std(differences, ddof=1)
-    
+
     # Limits of agreement (mean difference ± 1.96*SD)
     loa_upper = mean_diff + 1.96 * std_diff
     loa_lower = mean_diff - 1.96 * std_diff
-    
+
     # Plot Bland-Altman plot
     plt.figure(figsize=(8, 5))
-    plt.scatter(mean_measurements, differences, color='blue', alpha=0.7)
-    plt.axhline(mean_diff, color='gray', linestyle='--', label=f"Mean diff = {mean_diff:.2f}")
-    plt.axhline(loa_upper, color='red', linestyle='--', label=f"Upper LoA = {loa_upper:.2f}")
-    plt.axhline(loa_lower, color='red', linestyle='--', label=f"Lower LoA = {loa_lower:.2f}")
-    
+    plt.scatter(mean_measurements, differences, color="blue", alpha=0.7)
+    plt.axhline(
+        mean_diff, color="gray", linestyle="--", label=f"Mean diff = {mean_diff:.2f}"
+    )
+    plt.axhline(
+        loa_upper, color="red", linestyle="--", label=f"Upper LoA = {loa_upper:.2f}"
+    )
+    plt.axhline(
+        loa_lower, color="red", linestyle="--", label=f"Lower LoA = {loa_lower:.2f}"
+    )
+
     plt.xlabel("Mean of two measurements")
     plt.ylabel("Difference between measurements")
     plt.ylim([1.5 * loa_lower, 1.5 * loa_upper])
@@ -330,14 +388,17 @@ def plot_bland_altman(arr_1: NumpyFloat32Array1D,
         return
     plt.close()
 
-def plot_v_plot(subj_wise_agreement: pd.DataFrame, 
-                gt_probs: pd.Series, 
-                uncertainties: Sequence[int], 
-                title: str, 
-                show_axis_labels: bool = True, 
-                show_legend: bool = False) -> None:
+
+def plot_v_plot(
+    subj_wise_agreement: pd.DataFrame,
+    gt_probs: pd.Series,
+    uncertainties: Sequence[int],
+    title: str,
+    show_axis_labels: bool = True,
+    show_legend: bool = False,
+) -> None:
     """
-    Creates a v-plot between the agreement of simulated scores and classifier scores for 
+    Creates a v-plot between the agreement of simulated scores and classifier scores for
     subjects against the inferent probability scores of the subjects.
 
     Parameters
@@ -362,37 +423,53 @@ def plot_v_plot(subj_wise_agreement: pd.DataFrame,
     """
     gt_probs = gt_probs.sort_values()
     _temp = subj_wise_agreement.loc[gt_probs.index, :]
-    _max_alpha = [np.min(uncertainties), np.median(uncertainties), np.max(uncertainties)]
+    _max_alpha = [
+        np.min(uncertainties),
+        np.median(uncertainties),
+        np.max(uncertainties),
+    ]
     for uncert in uncertainties:
         if uncert in _max_alpha:
-            plt.plot(gt_probs, 
-                    _temp[f"{uncert}% uncertainty"], 
-                    label=f"{uncert}% uncertainty")
+            plt.plot(
+                gt_probs,
+                _temp[f"{uncert}% uncertainty"],
+                label=f"{uncert}% uncertainty",
+            )
         else:
-            plt.plot(gt_probs, 
-                    _temp[f"{uncert}% uncertainty"], 
-                    label=f"{uncert}% uncertainty", 
-                    alpha=0.2)
+            plt.plot(
+                gt_probs,
+                _temp[f"{uncert}% uncertainty"],
+                label=f"{uncert}% uncertainty",
+                alpha=0.2,
+            )
     plt.title(title)
     if show_axis_labels:
         plt.xlabel("Probability score")
-        plt.ylabel("Percent agreement between simulated and\n inferent scores for subjects")
+        plt.ylabel(
+            "Percent agreement between simulated and\n inferent scores for subjects"
+        )
     if show_legend:
-        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=len(uncertainties)//3)
+        plt.legend(
+            loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=len(uncertainties) // 3
+        )
 
-def generate_waterfall_plot(*,
-                            threshold: float, 
-                            probs: pd.Series, 
-                            color_labels_data: pd.Series, 
-                            labels: dict[int, str],
-                            colors: list[str],
-                            title: str,
-                            save: bool = False) -> None:
+
+def generate_waterfall_plot(
+    *,
+    threshold: float,
+    probs: pd.Series,
+    color_labels_data: pd.Series,
+    labels: dict[int, str],
+    colors: list[str],
+    title: str,
+    legend_title: str = "",
+    save: bool = False,
+) -> None:
     """
     Creates a waterfall plot showing a comparison between predictions by a binary
     classifier against the "true classes" specified by the `color_labels_data`.
-    In `color_labels_data` the classes are integer values for which the `labels` 
-    dictionary provides the string representations. 
+    In `color_labels_data` the classes are integer values for which the `labels`
+    dictionary provides the string representations.
 
     Parameters
     ----------
@@ -404,12 +481,14 @@ def generate_waterfall_plot(*,
         A Pandas series with integer labels corresponding to classification according to some
         criterion, e.g. modeled measurement uncertainty.
     labels
-        Dictionary containing string labels corresponding to integer values for classes in 
+        Dictionary containing string labels corresponding to integer values for classes in
         `color_labels_data`.
     colors
         Hex codes for colors for bars for each unique label.
     title
         Title for the plot.
+    legend_title
+        Title for the legend.
     save
         Whether to save the generated plot. If specified as true, saves the plot as a PNG image
         of the same name as the title.
@@ -423,7 +502,7 @@ def generate_waterfall_plot(*,
     ValueError
         1. If `threshold` is not between 0 and 1.
         2. If the indexes of the `probs` and `color_labels_data` Series do not match. This is
-           required to ensure matching probabilities with the color labels when they are 
+           required to ensure matching probabilities with the color labels when they are
            combined into a dataframe.
         3. If the number of colors specified is not the same as the number of unique labels.
     """
@@ -435,7 +514,9 @@ def generate_waterfall_plot(*,
     if not probs.index.tolist() == color_labels_data.index.tolist():
         raise ValueError("Indexes of probs and color_labels_data must be identical.")
     if not len(colors) == len(labels):
-        raise ValueError("Must supply a list of colors of same length as the number of unique labels.")
+        raise ValueError(
+            "Must supply a list of colors of same length as the number of unique labels."
+        )
 
     probs_df = pd.DataFrame(index=probs.index)
     probs_df["probs"] = probs
@@ -450,10 +531,19 @@ def generate_waterfall_plot(*,
 
     for label, color in zip(unique_labels, colors):
         filt = probs_df["color_labels"] == label
-        plt.bar(probs_df.loc[filt, "x"], probs_df.loc[filt, "probs"], width=0.2, color=color, label=labels[label])
+        plt.bar(
+            probs_df.loc[filt, "x"],
+            probs_df.loc[filt, "probs"],
+            width=0.2,
+            color=color,
+            label=labels[label],
+        )
+
+    curr_yticks = plt.gca().get_yticks()
     plt.xticks([])
+    plt.yticks(curr_yticks, np.round(curr_yticks + threshold, 2))
     plt.ylabel("Classifier score")
-    plt.legend()
+    plt.legend(title=legend_title)
     plt.title(title, fontsize=15)
     if save:
         plt.savefig(f"{title}.png")
