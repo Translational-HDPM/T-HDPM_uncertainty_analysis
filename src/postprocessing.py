@@ -787,7 +787,7 @@ def plot_differential_classification_results(
     gt_labels: pd.Series,
     one_sim_mismatch_pred_labels_dict: dict[int, pd.Series],
     ten_pct_sim_mismatch_pred_labels_dict: dict[int, pd.Series],
-    labels: list[str],
+    labels_dict: dict[list[str], str],
     figure_title: str,
 ) -> None:
     """
@@ -810,9 +810,10 @@ def plot_differential_classification_results(
         A dictionary where keys are uncertainty levels (integers) and values
         are pandas Series containing predicted labels for the "at least 10%
         of simulations mismatch" scenario.
-    labels
-        A list of strings representing the names of the classes. The order of
-        these labels should correspond to the integer labels used in the
+    labels_dict
+        A dictionary where the keys represent the names of the classes and the
+        corresponding values are the line styles in the lineplot. The order of
+        these labels (in the keys) should correspond to the integer labels used in the
         prediction dictionaries.
     figure_title
         The main title for the entire figure.
@@ -826,7 +827,9 @@ def plot_differential_classification_results(
     --------
     get_differential_classification : Calculates the underlying data for the plots.
     """
-    label_counts = {label: (gt_labels == i).sum() for i, label in enumerate(labels)}
+    label_counts = {
+        label: (gt_labels == i).sum() for i, label in enumerate(labels_dict.keys())
+    }
     fig = plt.figure(figsize=(16, 6))
     fig, axs = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(16, 6))
     plt.subplot(121)
@@ -834,20 +837,20 @@ def plot_differential_classification_results(
     results = get_differential_classification(
         gt_labels,
         one_sim_mismatch_pred_labels_dict,
-        labels,
+        list(labels_dict.keys()),
     )
     for cat in results.columns:
-        plt.plot(results.index, results.loc[:, cat], label=cat)
+        plt.plot(results.index, results.loc[:, cat], label=cat, color=labels_dict[cat])
     plt.title("At least 1 simulation mismatch")
 
     plt.subplot(122)
     results = get_differential_classification(
         gt_labels,
         ten_pct_sim_mismatch_pred_labels_dict,
-        labels,
+        list(labels_dict.keys()),
     )
     for cat in results.columns:
-        plt.plot(results.index, results.loc[:, cat], label=cat)
+        plt.plot(results.index, results.loc[:, cat], label=cat, color=labels_dict[cat])
     plt.title(
         "At least 10% of simulations mismatch",
     )
