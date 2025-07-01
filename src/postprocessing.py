@@ -3,13 +3,75 @@ Functions for post-processing (visualization and downstream analysis) of simulat
 """
 
 from typing import Optional, Sequence
+from itertools import permutations
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from sklearn.metrics import jaccard_score
 
 from .dtypes import NumpyFloat32Array1D, NumpyFloat32Array2D
 
+
+def get_differential_classification(
+    gt_labels: pd.Series, pred_labels_dict: dict[int, pd.Series], labels: list[str]
+) -> pd.DataFrame:
+    """
+    Calculate the differential classification percentages. Each row in the
+    output DataFrame represents an uncertainty level and each column represents
+    a true label. The values in the DataFrame indicate the percentage of
+    instances with a specific true label that were misclassified as *any other*
+    label at a given uncertainty level.
+
+    Parameters
+    ----------
+    gt_labels : pd.Series
+        A pandas Series containing the ground truth labels. These labels should
+        be integers corresponding to the indices of the `labels` list.
+    pred_labels_dict : dict[int, pd.Series]
+        A dictionary where keys are uncertainty levels (integers) and values
+        are pandas Series containing the predicted labels for each instance
+        at that specific uncertainty level. These predicted labels should also
+        be integers corresponding to the indices of the `labels` list.
+    labels : list[str]
+        A list of strings representing the names of the classes. The order of
+        these labels should correspond to the integer labels used in
+        `gt_labels` and `pred_labels_dict`.
+
+    Returns
+    -------
+    pd.DataFrame
+        A pandas DataFrame with uncertainty levels as the index and class names
+        (from `labels`) as columns. Each cell `(u, l)` contains the percentage
+        of instances with true label `l` that were misclassified at uncertainty
+        level `u`. The values are scaled by 100 to represent percentages.
+
+    Examples
+    --------
+    >>> gt = pd.Series([0, 0, 1, 1, 0, 1])
+    >>> pred_dict = {
+    ...     10: pd.Series([0, 1, 1, 0, 0, 1]),
+    ...     20: pd.Series([1, 1, 0, 0, 1, 0])
+    ... }
+    >>> class_names = ['NCI', 'AD']
+    >>> df = get_differential_classification(gt, pred_dict, class_names)
+    >>> print(df)
+           NCI        AD
+    10   33.333333   0.000000
+    20  100.000000  100.000000
+    """
+    diff_cls_df = pd.DataFrame(
+        index=list(pred_labels_dict.keys()),
+        columns=labels,
+        data=np.zeros(shape=(len(list(pred_labels_dict.keys())), len(labels))),
+    )
+    for uncert in pred_labels_dict:
+        for true_label, fake_label in permutations(range(len(labels)), 2):
+            subset = pred_labels_dict[uncert][gt_labels == true_label] == fake_label
+            diff_cls_df.loc[uncert, labels[true_label]] += subset.sum()
+    for i, label in enumerate(labels):
+        diff_cls_df[label] = diff_cls_df[label] / (gt_labels == i).sum() * 100
+    return diff_cls_df
 
 def plot_confusion_matrix(
     cnf_mat: NumpyFloat32Array2D, categories: list[str], title: Optional[str] = None
@@ -548,3 +610,172 @@ def generate_waterfall_plot(
     if save:
         plt.savefig(f"{title}.png")
     plt.show()
+
+
+def calculate_jaccard_index(
+    *, labels: list[str], gt_labels: pd.Series, pred_labels_dict: dict[int, pd.Series]
+) -> pd.DataFrame:
+    """
+    Calculate the Jaccard similarity score for a set of predictions
+    against ground truth labels. The predictions are provided in a dictionary,
+    where each entry corresponds to a different level of uncertainty. The
+    function returns a DataFrame summarizing the Jaccard index for each class
+    label across all uncertainty levels.
+
+    Parameters
+    ----------
+    labels
+        A list of strings representing the class labels to be evaluated.
+    gt_labels
+        A pandas Series containing the true ground truth labels.
+    pred_labels_dict
+        A dictionary mapping an uncertainty level (integer key) to a pandas
+        Series of predicted labels. The keys represent the uncertainty
+        threshold, and the values are the corresponding predictions.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame where rows are indexed by uncertainty levels and columns
+        are indexed by class labels. Each cell `(i, j)` contains the
+        Jaccard index for class `j` at uncertainty level `i`. The row for
+        uncertainty `0` is initialized to all ones as a baseline.
+    """
+    jaccard_index = pd.DataFrame(
+        index=list(pred_labels_dict.keys()), columns=list(labels)
+    )
+    jaccard_index.loc[0, :] = np.ones(len(labels))
+    for uncert in pred_labels_dict:
+        jaccard_index.loc[uncert, :] = jaccard_score(
+            pred_labels_dict[uncert].values,
+            gt_labels.values,
+            average=None,
+        )
+    return jaccard_index
+
+
+def plot_jaccard_index_plot(
+    *,
+    labels_dict_single_thres: dict[str, str],
+    labels_dict_dual_thres: dict[str, str],
+    gt_labels_single_thres: pd.Series,
+    gt_labels_dual_thres: pd.Series,
+    pred_labels_dict_single_thres: dict[int, pd.Series],
+    pred_labels_dict_dual_thres: dict[int, pd.Series],
+    single_thres_plot_title: str,
+    dual_thres_plot_title: str,
+    figure_title: str,
+    save: bool = False,
+) -> None:
+    """
+    Generates a figure with two subplots, each showing the Jaccard index for
+    different class labels as a function of an uncertainty percentage. It is
+    designed to compare the performance of a single-threshold classification
+    method against a dual-threshold method.
+
+    Parameters
+    ----------
+    labels_dict_single_thres
+        Dictionary mapping class labels to plot colors for the single-threshold
+        (left) plot. e.g., `{'AD': 'b', 'NCI': 'r'}`.
+    labels_dict_dual_thres
+        Dictionary mapping class labels to plot colors for the dual-threshold
+        (right) plot. Must have consistent colors with `labels_dict_single_thres`.
+    gt_labels_single_thres
+        A pandas Series containing the ground truth labels for the
+        single-threshold scenario.
+    gt_labels_dual_thres
+        A pandas Series containing the ground truth labels for the
+        dual-threshold scenario.
+    pred_labels_dict_single_thres
+        Dictionary mapping uncertainty levels (int) to predicted labels
+        (pd.Series) for the single-threshold scenario.
+    pred_labels_dict_dual_thres
+        Dictionary mapping uncertainty levels (int) to predicted labels
+        (pd.Series) for the dual-threshold scenario.
+    single_thres_plot_title
+        The title for the left subplot (single-threshold).
+    dual_thres_plot_title
+        The title for the right subplot (dual-threshold).
+    figure_title
+        The main title for the entire figure.
+    save
+        If True, the figure is saved to a PNG file named after the
+        `figure_title`. Default is False.
+
+    Returns
+    -------
+    None
+        This function does not return any value. It displays a matplotlib plot.
+
+    Raises
+    ------
+    ValueError
+        If a class label has a different color mapping between
+        `labels_dict_single_thres` and `labels_dict_dual_thres`.
+
+    See Also
+    --------
+    calculate_jaccard_index : The function used to compute the Jaccard scores.
+    """
+    for label in labels_dict_single_thres:
+        if labels_dict_single_thres[label] != labels_dict_dual_thres[label]:
+            raise ValueError(
+                f"Difference in linestyle between single and dual threshold plots for label '{label}'"
+            )
+    fig, axs = plt.subplots(figsize=(16, 6), nrows=1, ncols=2, sharex=True, sharey=True)
+    plt.subplot(121)
+    jac_idx_df = calculate_jaccard_index(
+        labels=list(labels_dict_single_thres.keys()),
+        gt_labels=gt_labels_single_thres,
+        pred_labels_dict=pred_labels_dict_single_thres,
+    )
+    x_vals = np.sort(jac_idx_df.index.values)
+    for col in jac_idx_df.columns:
+        plt.plot(
+            x_vals,
+            jac_idx_df.loc[x_vals, col],
+            label=col,
+            color=labels_dict_single_thres[col],
+        )
+
+    plt.legend()
+    plt.title(single_thres_plot_title)
+
+    plt.subplot(122)
+    jac_idx_df = calculate_jaccard_index(
+        labels=list(labels_dict_dual_thres.keys()),
+        gt_labels=gt_labels_dual_thres,
+        pred_labels_dict=pred_labels_dict_dual_thres,
+    )
+    x_vals = np.sort(jac_idx_df.index.values)
+    for col in jac_idx_df.columns:
+        plt.plot(
+            x_vals,
+            jac_idx_df.loc[x_vals, col],
+            label=col,
+            color=labels_dict_dual_thres[col],
+        )
+    plt.legend()
+    plt.title(dual_thres_plot_title)
+    fig.text(
+        0.09,
+        0.5,
+        "Jaccard index",
+        va="center",
+        ha="center",
+        rotation="vertical",
+    )
+    fig.text(0.5, 0.05, "Pct. uncertainty", va="center", ha="center")
+    leg_handles, leg_labels = plt.gca().get_legend_handles_labels()
+    fig.legend(
+        leg_handles,
+        leg_labels,
+        loc="upper center",
+        ncol=2,
+        bbox_to_anchor=(0.5, 0.03),
+    )
+    fig.suptitle(figure_title)
+    plt.show()
+    if save:
+        fig.savefig(f"{figure_title}.png")
