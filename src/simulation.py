@@ -325,10 +325,10 @@ def simulate_sampling_experiment(
             >= diff_class_lim
         ):
             if single_thres_res.gt_labels.loc[patient_id] == 0:
-                single_thres_res.ad_diff_cls_ids.append(patient_id)
+                single_thres_res.nci_diff_cls_ids.append(patient_id)
                 single_thres_res.pred_labels.loc[patient_id] = 1
             else:
-                single_thres_res.nci_diff_cls_ids.append(patient_id)
+                single_thres_res.ad_diff_cls_ids.append(patient_id)
                 single_thres_res.pred_labels.loc[patient_id] = 0
         else:
             single_thres_res.pred_labels.loc[patient_id] = (
