@@ -144,14 +144,14 @@ class MultiUncertaintyResults:
         A dictionary containing contents of the `pred_series` attribute for
         `DualThresholdResults` instances for all uncertainty levels.
     single_thres_gt_labels
-        A dictionary containing contents of the `gt_labels` attribute for
-        `SingleThresholdResults` instances for all uncertainty levels.
+        A pandas Series containing contents of the `gt_labels` attribute for
+        `SingleThresholdResults` instances.
     single_thres_pred_labels
         A dictionary containing contents of the `pred_labels` attribute for
         `SingleThresholdResults` instances for all uncertainty levels.
     dual_thres_gt_labels
-        A dictionary containing contents of the `gt_labels` attribute for
-        `DualThresholdResults` instances for all uncertainty levels.
+        A pandas Series containing contents of the `gt_labels` attribute for
+        `DualThresholdResults` instances.
     dual_thres_pred_labels
         A dictionary containing contents of the `pred_labels` attribute for
         `DualThresholdResults` instances for all uncertainty levels.
@@ -169,18 +169,38 @@ class MultiUncertaintyResults:
             columns=["mean_lin", "std_lin", "mean_probs", "std_probs"],
         )
 
-        self.pos_subscore_arrs = {uncert: None for uncert in uncertainties}
-        self.neg_subscore_arrs = {uncert: None for uncert in uncertainties}
-        self.lin_score_arrs = {uncert: None for uncert in uncertainties}
-        self.pred_prob_arrs = {uncert: None for uncert in uncertainties}
-        self.single_thres_gt_series = {uncert: None for uncert in uncertainties}
-        self.single_thres_pred_series = {uncert: None for uncert in uncertainties}
-        self.dual_thres_gt_series = {uncert: None for uncert in uncertainties}
-        self.dual_thres_pred_series = {uncert: None for uncert in uncertainties}
-        self.single_thres_gt_labels = {uncert: None for uncert in uncertainties}
-        self.single_thres_pred_labels = {uncert: None for uncert in uncertainties}
-        self.dual_thres_gt_labels = {uncert: None for uncert in uncertainties}
-        self.dual_thres_pred_labels = {uncert: None for uncert in uncertainties}
+        self.pos_subscore_arrs: dict[int, NumpyFloat32Array1D] = {
+            uncert: None for uncert in uncertainties
+        }
+        self.neg_subscore_arrs: dict[int, NumpyFloat32Array1D] = {
+            uncert: None for uncert in uncertainties
+        }
+        self.lin_score_arrs: dict[int, NumpyFloat32Array1D] = {
+            uncert: None for uncert in uncertainties
+        }
+        self.pred_prob_arrs: dict[int, NumpyFloat32Array1D] = {
+            uncert: None for uncert in uncertainties
+        }
+        self.single_thres_gt_series: dict[int, pd.Series] = {
+            uncert: None for uncert in uncertainties
+        }
+        self.single_thres_pred_series: dict[int, pd.Series] = {
+            uncert: None for uncert in uncertainties
+        }
+        self.dual_thres_gt_series: dict[int, pd.Series] = {
+            uncert: None for uncert in uncertainties
+        }
+        self.dual_thres_pred_series: dict[int, pd.Series] = {
+            uncert: None for uncert in uncertainties
+        }
+        self.single_thres_gt_labels: pd.Series = None
+        self.single_thres_pred_labels: dict[int, pd.Series] = {
+            uncert: None for uncert in uncertainties
+        }
+        self.dual_thres_gt_labels: pd.Series = None
+        self.dual_thres_pred_labels: dict[int, pd.Series] = {
+            uncert: None for uncert in uncertainties
+        }
 
 
 def simulate_sampling_experiment(
@@ -469,14 +489,12 @@ def simulate_multiple_uncertainties(
             res.dual_thres_gt_series[uncertainty],
             res.dual_thres_pred_series[uncertainty],
         ) = dual_thres_res.gt_series, dual_thres_res.preds_series
-        (
-            res.single_thres_gt_labels[uncertainty],
-            res.single_thres_pred_labels[uncertainty],
-        ) = single_thres_res.gt_labels, single_thres_res.pred_labels
-        (
-            res.dual_thres_gt_labels[uncertainty],
-            res.dual_thres_pred_labels[uncertainty],
-        ) = dual_thres_res.gt_labels, dual_thres_res.pred_labels
+        res.single_thres_pred_labels[uncertainty] = single_thres_res.pred_labels
+        res.dual_thres_pred_labels[uncertainty] = dual_thres_res.pred_labels
+        if res.single_thres_gt_labels is None:
+            res.single_thres_gt_labels = single_thres_res.gt_labels
+        if res.dual_thres_gt_labels is None:
+            res.dual_thres_gt_labels = dual_thres_res.gt_labels
         res.lin_score_arrs[uncertainty], res.pred_prob_arrs[uncertainty] = (
             lin_scores,
             pred_probs,
