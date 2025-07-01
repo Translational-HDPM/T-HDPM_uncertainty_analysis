@@ -73,6 +73,7 @@ def get_differential_classification(
         diff_cls_df[label] = diff_cls_df[label] / (gt_labels == i).sum() * 100
     return diff_cls_df
 
+
 def plot_confusion_matrix(
     cnf_mat: NumpyFloat32Array2D, categories: list[str], title: Optional[str] = None
 ) -> None:
@@ -779,3 +780,105 @@ def plot_jaccard_index_plot(
     plt.show()
     if save:
         fig.savefig(f"{figure_title}.png")
+
+
+def plot_differential_classification_results(
+    *,
+    gt_labels: pd.Series,
+    one_sim_mismatch_pred_labels_dict: dict[int, pd.Series],
+    ten_pct_sim_mismatch_pred_labels_dict: dict[int, pd.Series],
+    labels: list[str],
+    figure_title: str,
+) -> None:
+    """
+    Plots differential classification results for single and dual threshold scenarios.
+
+    This function generates a two-subplot figure displaying the percentage of
+    differentially classified subjects for various uncertainty levels, based
+    on single and dual threshold scenarios.
+
+    Parameters
+    ----------
+    gt_labels
+        A pandas Series containing the ground truth labels. These labels should
+        be integers corresponding to the indices of the `labels` list.
+    one_sim_mismatch_pred_labels_dict
+        A dictionary where keys are uncertainty levels (integers) and values
+        are pandas Series containing predicted labels for the "at least 1
+        simulation mismatch" scenario.
+    ten_pct_sim_mismatch_pred_labels_dict
+        A dictionary where keys are uncertainty levels (integers) and values
+        are pandas Series containing predicted labels for the "at least 10%
+        of simulations mismatch" scenario.
+    labels
+        A list of strings representing the names of the classes. The order of
+        these labels should correspond to the integer labels used in the
+        prediction dictionaries.
+    figure_title
+        The main title for the entire figure.
+
+    Returns
+    -------
+    None
+        This function does not return any value. It displays a matplotlib figure.
+
+    See Also
+    --------
+    get_differential_classification : Calculates the underlying data for the plots.
+    """
+    label_counts = {label: (gt_labels == i).sum() for i, label in enumerate(labels)}
+    fig = plt.figure(figsize=(16, 6))
+    fig, axs = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(16, 6))
+    plt.subplot(121)
+
+    results = get_differential_classification(
+        gt_labels,
+        one_sim_mismatch_pred_labels_dict,
+        labels,
+    )
+    for cat in results.columns:
+        plt.plot(results.index, results.loc[:, cat], label=cat)
+    plt.title("At least 1 simulation mismatch")
+
+    plt.subplot(122)
+    results = get_differential_classification(
+        gt_labels,
+        ten_pct_sim_mismatch_pred_labels_dict,
+        labels,
+    )
+    for cat in results.columns:
+        plt.plot(results.index, results.loc[:, cat], label=cat)
+    plt.title(
+        "At least 10% of simulations mismatch",
+    )
+
+    leg_handles, leg_labels = plt.gca().get_legend_handles_labels()
+    fig.legend(
+        leg_handles,
+        leg_labels,
+        loc="upper center",
+        ncol=len(leg_labels),
+        bbox_to_anchor=(0.5, 0.03),
+    )
+    fig.text(0.5, 0.05, "Pct. uncertainty", va="center", ha="center")
+    fig.text(
+        0.09,
+        0.5,
+        "Percent of subjects within category differentially classified",
+        va="center",
+        ha="center",
+        rotation="vertical",
+    )
+    fig.suptitle(figure_title)
+    fig.text(
+        0.5,
+        -0.06,
+        "Classifier predictions: "
+        + ", ".join([f"{label_counts[label]} {label}" for label in label_counts])
+        + " subjects",
+        ha="center",
+        va="center",
+        bbox=dict(
+            boxstyle="round,pad=0.5", facecolor="white", edgecolor="black", alpha=0.8
+        ),
+    )
