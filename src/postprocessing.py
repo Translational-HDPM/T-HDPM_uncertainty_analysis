@@ -65,12 +65,14 @@ def get_differential_classification(
         columns=labels,
         data=np.zeros(shape=(len(list(pred_labels_dict.keys())), len(labels))),
     )
+    diff_cls_df.loc[0, :] = np.zeros(len(labels))
     for uncert in pred_labels_dict:
         for true_label, fake_label in permutations(range(len(labels)), 2):
             subset = pred_labels_dict[uncert][gt_labels == true_label] == fake_label
             diff_cls_df.loc[uncert, labels[true_label]] += subset.sum()
     for i, label in enumerate(labels):
         diff_cls_df[label] = diff_cls_df[label] / (gt_labels == i).sum() * 100
+    diff_cls_df = diff_cls_df.loc[np.sort(diff_cls_df.index), :]
     return diff_cls_df
 
 
