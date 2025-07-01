@@ -742,7 +742,6 @@ def plot_jaccard_index_plot(
             color=labels_dict_single_thres[col],
         )
 
-    plt.legend()
     plt.title(single_thres_plot_title)
 
     plt.subplot(122)
@@ -759,7 +758,6 @@ def plot_jaccard_index_plot(
             label=col,
             color=labels_dict_dual_thres[col],
         )
-    plt.legend()
     plt.title(dual_thres_plot_title)
     fig.text(
         0.09,
