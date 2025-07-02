@@ -2,11 +2,13 @@
 Functions and classes for Monte Carlo simulations on RNA-seq data for Alzheimer's disease.
 """
 
+import warnings
 from typing import Callable
 from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 import scipy.stats as st
+from joblib import Parallel, delayed
 from .logreg_classifier import (
     linear_classifier_score,
     linear_classifier_subscores,
@@ -14,6 +16,8 @@ from .logreg_classifier import (
     z_score,
 )
 from .dtypes import NumpyFloat32Array1D
+
+warnings.filterwarnings("ignore")  # ignore all warnings
 
 
 @dataclass
@@ -151,6 +155,8 @@ def simulate_sampling_experiment(
     uncertainty: float,
     n_samples: int,
     coefficients: np.ndarray | pd.Series,
+    seed: int | np.random.SeedSequence | None = None,
+    worker_id: int = 1,
 ) -> tuple[
     SingleUncertaintyResults,
     SingleUncertaintyResults,
@@ -189,6 +195,11 @@ def simulate_sampling_experiment(
         Number of Monte Carlo simulations to generate for each TPM value.
     coefficients
         Coefficients of the logistic regression classifier.
+    seed
+        Seed for random number generation. Defaults to None.
+    worker_id
+        An integer ID representing the ID of the process if using parallel processing.
+        Defaults to 1.
 
     Returns
     -------
@@ -239,15 +250,19 @@ def simulate_sampling_experiment(
 
     _means, _stds = tpm_df.mean(axis=1), tpm_df.std(axis=1)
 
+    # Generate random number seed sequence for seeds for sampler
+    seed_seq = np.random.SeedSequence([worker_id, seed])
     for j in range(num_patients):
         samples = np.zeros((n_features, n_samples))
         patient_id = tpm_df.columns[j]
-
+        
+        # Spawn n_feature seeds, one seed per feature
+        seeds = seed_seq.spawn(n_features)
         for i in range(n_features):
             mean = tpm_df.iloc[i, j]
 
             # Generate Monte Carlo samples
-            samples[i] = sampler(mean, uncertainty / 100, n_samples)
+            samples[i] = sampler(mean, uncertainty / 100, n_samples, seeds[i])
 
         # Convert sampled TPMs to z-scores
         samples = z_score(
@@ -354,6 +369,8 @@ def simulate_multiple_uncertainties(
     coefficients: pd.Series,
     diff_class_lim: int,
     n_samples: int = 1000,
+    num_workers: int = 1,
+    seed: int | None = None,
 ) -> MultiUncertaintyResults:
     """
     Run simulation of MC sampling for multiple values of uncertainties for a
@@ -383,6 +400,11 @@ def simulate_multiple_uncertainties(
         scores for a subject to be considered differentially classified.
     n_samples
         Number of Monte Carlo simulations to generate for each TPM value.
+    num_workers
+        Number of parallel jobs to run for simulation. Defaults to 1. Should
+        not exceed the number of processors (CPU cores) in the machine.
+    seed
+        Seed for random sampling. Defaults to None.
 
     Returns
     -------
@@ -391,15 +413,8 @@ def simulate_multiple_uncertainties(
         simulations.
     """
     res = MultiUncertaintyResults(uncertainties)
-    for uncertainty in uncertainties:
-        (
-            single_thres_res,
-            dual_thres_res,
-            neg_subscores,
-            pos_subscores,
-            lin_scores,
-            pred_probs,
-        ) = simulate_sampling_experiment(
+    outputs = Parallel(n_jobs=num_workers)(
+        delayed(simulate_sampling_experiment)(
             tpm_df,
             sampler,
             dual_thres_1=thres_low,
@@ -409,7 +424,20 @@ def simulate_multiple_uncertainties(
             uncertainty=uncertainty,
             diff_class_lim=diff_class_lim,
             n_samples=n_samples,
+            seed=seed,
+            worker_id=worker_id,
         )
+        for worker_id, uncertainty in enumerate(uncertainties)
+    )
+    for uncertainty, output in zip(uncertainties, outputs):
+        (
+            single_thres_res,
+            dual_thres_res,
+            neg_subscores,
+            pos_subscores,
+            lin_scores,
+            pred_probs,
+        ) = output
         (
             res.single_thres_gt_series[uncertainty],
             res.single_thres_pred_series[uncertainty],
