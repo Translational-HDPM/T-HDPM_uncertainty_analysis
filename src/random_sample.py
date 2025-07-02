@@ -13,33 +13,43 @@ from .dtypes import (
 
 
 def sample_zero_inflated_poisson(
-    lambda_zip: float, pi_zip: float, shape: tuple[int, int]
+    lambda_zip: float,
+    pi_zip: float,
+    shape: tuple[int, int],
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array2D:
-    """
+    r"""
     Generates random samples of given shape from a zero-inflated Poisson distribution.
 
     Parameters
     ----------
     lambda_zip
-        Expected value of the distribution, or the $\lambda$ parameter
+        Expected value of the distribution, or the $\lambda$ parameter.
     pi_zip
         Probability of extra zeros.
     shape
-        Dimensions of the output sample array
+        Dimensions of the output sample array.
+    seed
+        Seed for random number generation. Default is None.
 
     Returns
     -------
     np.ndarray
         Random sample array of given shape.
     """
-    probs = np.random.rand(*shape)
-    res = np.random.poisson(lam=lambda_zip, size=shape)
+    rng = np.random.default_rng(seed)
+    probs = rng.rand(*shape)
+    res = rng.poisson(lam=lambda_zip, size=shape)
     res[probs < pi_zip] = 0.0
     return res
 
 
 def sample_zero_inflated_negative_binomial(
-    r: float, p: float, pi_zinb: float, shape: tuple[int, int]
+    r: float,
+    p: float,
+    pi_zinb: float,
+    shape: tuple[int, int],
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array2D:
     """
     Generates random samples of given shape from a zero-inflated negative binomial distribution.
@@ -54,20 +64,26 @@ def sample_zero_inflated_negative_binomial(
         Probability of extra zeros.
     shape
         Dimensions of the output sample array
+    seed
+        Seed for random number generation. Default is None.
 
     Returns
     -------
     np.ndarray
         Random sample array of given shape.
     """
-    probs = np.random.rand(*shape)
-    res = np.random.negative_binomial(r, p, size=shape)
+    rng = np.random.default_rng(seed)
+    probs = rng.rand(*shape)
+    res = rng.negative_binomial(r, p, size=shape)
     res[probs < pi_zinb] = 0.0
     return res
 
 
 def sample_gaussian_mean_rsd(
-    mu: float | NumpyFloat64Array1D, rel_u: float, n_points: int = 1000
+    mu: float | NumpyFloat64Array1D,
+    rel_u: float,
+    n_points: int = 1000,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> float | NumpyFloat64Array1D:
     """
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from
@@ -81,6 +97,8 @@ def sample_gaussian_mean_rsd(
         Relative standard deviation of the distribution
     n_points
         Number of points to sample
+    seed
+        Seed for random number generation. Default is None.
 
     Returns
     -------
@@ -95,11 +113,15 @@ def sample_gaussian_mean_rsd(
     """
     if not 0 <= rel_u <= 1:
         raise ValueError("Relative uncertainty must be between 0 and 1.")
-    return np.random.normal(mu, rel_u * mu, size=n_points)
+    rng = np.random.default_rng(seed)
+    return rng.normal(mu, rel_u * mu, size=n_points)
 
 
 def sample_poisson_mean_rsd(
-    mu: int, rel_u: float, n_points: int = 1000
+    mu: int,
+    rel_u: float,
+    n_points: int = 1000,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyFloat32Array1D:
     r"""
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from
@@ -129,6 +151,8 @@ def sample_poisson_mean_rsd(
         Relative standard deviation of the distribution
     n_points
         Number of points to sample
+    seed
+        Seed for random number generation. Default is None.
 
     Returns
     -------
@@ -142,11 +166,15 @@ def sample_poisson_mean_rsd(
     """
     if not 0 <= rel_u <= 1:
         raise ValueError("Relative uncertainty must be between 0 and 1.")
-    return mu * (rel_u**2) * np.random.poisson(lam=1 / rel_u**2.0, size=n_points)
+    rng = np.random.default_rng(seed)
+    return mu * (rel_u**2) * rng.poisson(lam=1 / rel_u**2.0, size=n_points)
 
 
 def sample_zero_inflated_poisson_mean_rsd(
-    mu: int, rel_u: float, n_points: int = 1000
+    mu: int,
+    rel_u: float,
+    n_points: int = 1000,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array1D:
     r"""
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from
@@ -200,6 +228,8 @@ def sample_zero_inflated_poisson_mean_rsd(
         Relative standard deviation of the distribution
     n_points
         Number of points to sample
+    seed
+        Seed for random number generation. Default is None.
 
     Returns
     -------
@@ -219,15 +249,19 @@ def sample_zero_inflated_poisson_mean_rsd(
         raise ValueError(
             "For the given relative uncertainty rel_u, we need rel_u^2 > 1 / mean"
         )
+    rng = np.random.default_rng(seed)
     pi_zip = 1.0 / (1.0 + 1.0 / (rel_u**2.0 - 1.0 / mu))
-    probs = np.random.rand(n_points)
-    res = np.random.poisson(lam=mu / (1 - pi_zip), size=n_points)
+    probs = rng.rand(n_points)
+    res = rng.poisson(lam=mu / (1 - pi_zip), size=n_points)
     res[probs < pi_zip] = 0.0
     return res
 
 
 def sample_negative_binomial_mean_rsd(
-    mu: int, rel_u: float, n_points: int = 1000
+    mu: int,
+    rel_u: float,
+    n_points: int = 1000,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array1D:
     r"""
     Given a mean ($X$) and uncertainty % (relative standard deviation) $k$, sample from
@@ -284,6 +318,8 @@ def sample_negative_binomial_mean_rsd(
         Relative standard deviation of the distribution
     n_points
         Number of points to sample
+    seed
+        Seed for random number generation. Default is None.
 
     Returns
     -------
@@ -304,13 +340,18 @@ def sample_negative_binomial_mean_rsd(
         raise ValueError(
             "For the given relative uncertainty rel_u, we need rel_u^2 > 1 / mean"
         )
+    rng = np.random.default_rng(seed)
     p = 1 / (mu * rel_u**2)
     r = 1 / ((1 - p) * rel_u**2)
-    return np.random.negative_binomial(r, p, size=n_points)
+    return rng.negative_binomial(r, p, size=n_points)
 
 
 def sample_zero_inflated_negative_binomial_mean_rsd(
-    mu: int, rel_u: float, pi_zinb: float, n_points: int = 1000
+    mu: int,
+    rel_u: float,
+    pi_zinb: float,
+    n_points: int = 1000,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array1D:
     r"""
     Given a mean ($X$) and uncertainty % (relative standard deviation) $k$, sample
@@ -343,6 +384,8 @@ def sample_zero_inflated_negative_binomial_mean_rsd(
         Probability of extra zeros.
     n_points
         Number of points to sample
+    seed
+        Seed for random number generation. Default is None.
 
     Returns
     -------
@@ -368,16 +411,20 @@ def sample_zero_inflated_negative_binomial_mean_rsd(
         raise ValueError(
             "For the given relative uncertainty rel_u, we need rel_u^2 > 1 / mean"
         )
+    rng = np.random.default_rng(seed)
     p = 1 / (mu * rel_u**2)
     r = 1 / ((1 - p) * rel_u**2)
-    probs = np.random.rand(n_points)
-    res = np.random.negative_binomial(r, p, size=n_points)
+    probs = rng.rand(n_points)
+    res = rng.negative_binomial(r, p, size=n_points)
     res[probs < pi_zinb] = 0.0
     return res
 
 
 def sample_gamma_mean_rsd(
-    mu: float, rel_u: float, n_points: int
+    mu: float,
+    rel_u: float,
+    n_points: int,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyFloat64Array1D:
     """
     Given a mean and uncertainty % (relative standard deviation), sample from a Gamma
@@ -391,6 +438,8 @@ def sample_gamma_mean_rsd(
         Relative standard deviation of the distribution
     n_points
         Number of points to sample
+    seed
+        Seed for random number generation. Default is None.
 
     Returns
     -------
@@ -403,15 +452,19 @@ def sample_gamma_mean_rsd(
     ValueError:
         Relative uncertainty must be between 0 and 1.
     """
+    rng = np.random.default_rng(seed)
     if not 0 <= rel_u <= 1:
         raise ValueError("Relative uncertainty must be between 0 and 1.")
     if mu == 0:
         mu += 1.0
-    return np.random.gamma(1 / (rel_u**2), mu * rel_u**2, size=n_points)
+    return rng.gamma(1 / (rel_u**2), mu * rel_u**2, size=n_points)
 
 
 def sample_lognormal_mean_rsd(
-    mu: float, rel_u: float, n_points: int
+    mu: float,
+    rel_u: float,
+    n_points: int,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyFloat64Array1D:
     """
     Given a mean and uncertainty % (relative standard deviation), sample from a
@@ -425,6 +478,8 @@ def sample_lognormal_mean_rsd(
         Relative standard deviation of the distribution
     n_points
         Number of points to sample
+    seed
+        Seed for random number generation. Default is None.
 
     Returns
     -------
@@ -437,11 +492,12 @@ def sample_lognormal_mean_rsd(
     ValueError:
         Relative uncertainty must be between 0 and 1.
     """
+    rng = np.random.default_rng(seed)
     if not 0 <= rel_u <= 1:
         raise ValueError("Relative uncertainty must be between 0 and 1.")
     if mu == 0:
         mu += 1.0
-    return np.random.lognormal(
+    return rng.lognormal(
         mean=np.log(mu) - 0.5 * np.log(1 + rel_u**2),
         sigma=np.sqrt(np.log(1 + rel_u**2)),
         size=n_points,
