@@ -18,7 +18,7 @@ def sample_zero_inflated_poisson(
     shape: tuple[int, int],
     seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array2D:
-    """
+    r"""
     Generates random samples of given shape from a zero-inflated Poisson distribution.
 
     Parameters
