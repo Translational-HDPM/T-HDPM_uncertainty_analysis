@@ -13,7 +13,10 @@ from .dtypes import (
 
 
 def sample_zero_inflated_poisson(
-    lambda_zip: float, pi_zip: float, shape: tuple[int, int], seed: int | None = None
+    lambda_zip: float,
+    pi_zip: float,
+    shape: tuple[int, int],
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array2D:
     """
     Generates random samples of given shape from a zero-inflated Poisson distribution.
@@ -42,7 +45,11 @@ def sample_zero_inflated_poisson(
 
 
 def sample_zero_inflated_negative_binomial(
-    r: float, p: float, pi_zinb: float, shape: tuple[int, int], seed: int | None = None
+    r: float,
+    p: float,
+    pi_zinb: float,
+    shape: tuple[int, int],
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array2D:
     """
     Generates random samples of given shape from a zero-inflated negative binomial distribution.
@@ -76,7 +83,7 @@ def sample_gaussian_mean_rsd(
     mu: float | NumpyFloat64Array1D,
     rel_u: float,
     n_points: int = 1000,
-    seed: int | None = None,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> float | NumpyFloat64Array1D:
     """
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from
@@ -111,7 +118,10 @@ def sample_gaussian_mean_rsd(
 
 
 def sample_poisson_mean_rsd(
-    mu: int, rel_u: float, n_points: int = 1000, seed: int | None = None
+    mu: int,
+    rel_u: float,
+    n_points: int = 1000,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyFloat32Array1D:
     r"""
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from
@@ -161,7 +171,10 @@ def sample_poisson_mean_rsd(
 
 
 def sample_zero_inflated_poisson_mean_rsd(
-    mu: int, rel_u: float, n_points: int = 1000, seed: int | None = None
+    mu: int,
+    rel_u: float,
+    n_points: int = 1000,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array1D:
     r"""
     Given a mean $X$ and uncertainty % (relative standard deviation) $k$, sample from
@@ -245,7 +258,10 @@ def sample_zero_inflated_poisson_mean_rsd(
 
 
 def sample_negative_binomial_mean_rsd(
-    mu: int, rel_u: float, n_points: int = 1000, seed: int | None = None
+    mu: int,
+    rel_u: float,
+    n_points: int = 1000,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array1D:
     r"""
     Given a mean ($X$) and uncertainty % (relative standard deviation) $k$, sample from
@@ -331,7 +347,11 @@ def sample_negative_binomial_mean_rsd(
 
 
 def sample_zero_inflated_negative_binomial_mean_rsd(
-    mu: int, rel_u: float, pi_zinb: float, n_points: int = 1000, seed: int | None = None
+    mu: int,
+    rel_u: float,
+    pi_zinb: float,
+    n_points: int = 1000,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyInt32Array1D:
     r"""
     Given a mean ($X$) and uncertainty % (relative standard deviation) $k$, sample
@@ -401,7 +421,10 @@ def sample_zero_inflated_negative_binomial_mean_rsd(
 
 
 def sample_gamma_mean_rsd(
-    mu: float, rel_u: float, n_points: int, seed: int | None = None
+    mu: float,
+    rel_u: float,
+    n_points: int,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyFloat64Array1D:
     """
     Given a mean and uncertainty % (relative standard deviation), sample from a Gamma
@@ -438,7 +461,10 @@ def sample_gamma_mean_rsd(
 
 
 def sample_lognormal_mean_rsd(
-    mu: float, rel_u: float, n_points: int, seed: int | None = None
+    mu: float,
+    rel_u: float,
+    n_points: int,
+    seed: int | np.random.SeedSequence | None = None,
 ) -> NumpyFloat64Array1D:
     """
     Given a mean and uncertainty % (relative standard deviation), sample from a
