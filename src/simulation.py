@@ -17,10 +17,9 @@ from .dtypes import NumpyFloat32Array1D
 
 
 @dataclass
-class SingleThresholdResults:
+class SingleUncertaintyResults:
     """
-    Dataclass storing simulation results for classification with a
-    single threshold cutoff.
+    Dataclass storing simulation results for classification for a single uncertainty level.
 
     Parameters
     ----------
@@ -41,60 +40,12 @@ class SingleThresholdResults:
         values of subjects. The labels are integers. Each patient ID has the value of
         an integer corresponding to the predicted label (accounting for the criterion
         for differential classification).
-    ad_diff_cls_ids
-        A list of patient IDs that were differentially classified as other than 'AD'.
-    nci_diff_cls_ids
-        A list of patient IDs that were differentially classified as other than 'NCI'.
     """
 
     gt_series: pd.Series = field(default_factory=pd.Series)
     preds_series: pd.Series = field(default_factory=pd.Series)
     gt_labels: pd.Series = field(default_factory=pd.Series)
     pred_labels: pd.Series = field(default_factory=pd.Series)
-    ad_diff_cls_ids: list[str] = field(default_factory=list)
-    nci_diff_cls_ids: list[str] = field(default_factory=list)
-
-
-@dataclass
-class DualThresholdResults:
-    """
-    Dataclass storing simulation results for classification with
-    two threshold cutoffs.
-
-    Parameters
-    ----------
-    gt_series
-        A Pandas series containing predictions from a classifier from original TPM
-        values of subjects (no added noise). The labels are integers. Each patient
-        ID has the value of a Numpy array of integers of shape (number of samples,).
-    preds_series
-        A Pandas series containing predictions from a classifier from simulated TPM
-        values of subjects. The labels are integers. Each patient ID has the value of
-        a Numpy array of integers of shape (number of samples,).
-    gt_labels
-        A Pandas series containing predictions from a classifier from original TPM
-        values of subjects (no added noise). The labels are integers. Each patient
-        ID has the value of an integer corresponding to the "ground truth" label.
-    pred_labels
-        A Pandas series containing predictions from a classifier from simulated TPM
-        values of subjects. The labels are integers. Each patient ID has the value of
-        an integer corresponding to the predicted label (accounting for the criterion
-        for differential classification).
-    ad_diff_cls_ids
-        A list of patient IDs that were differentially classified as other than 'AD'.
-    int_diff_cls_ids
-        A list of patient IDs that were differentially classified as other than 'Intermediate'.
-    nci_diff_cls_ids
-        A list of patient IDs that were differentially classified as other than 'NCI'.
-    """
-
-    gt_series: pd.Series = field(default_factory=pd.Series)
-    preds_series: pd.Series = field(default_factory=pd.Series)
-    gt_labels: pd.Series = field(default_factory=pd.Series)
-    pred_labels: pd.Series = field(default_factory=pd.Series)
-    ad_diff_cls_ids: list[str] = field(default_factory=list)
-    int_diff_cls_ids: list[str] = field(default_factory=list)
-    nci_diff_cls_ids: list[str] = field(default_factory=list)
 
 
 class MultiUncertaintyResults:
@@ -104,14 +55,6 @@ class MultiUncertaintyResults:
 
     Parameters
     ----------
-    single_thres_expt_results
-        A Pandas dataframe that contains the patient IDs that were differentially
-        classified for each uncertainty level. This dataframe is for experiments
-        with a single threshold.
-    dual_thres_expt_results
-        A Pandas dataframe that contains the patient IDs that were differentially
-        classified for each uncertainty level. This dataframe is for experiments
-        with two thresholds.
     score_stats
         A Pandas dataframe containing summary statistics for classifier outputs,
         including probability values and linear classifier values.
@@ -158,12 +101,6 @@ class MultiUncertaintyResults:
     """
 
     def __init__(self, uncertainties: list[int | float]):
-        self.single_thres_expt_results: pd.DataFrame = pd.DataFrame(
-            index=uncertainties, columns=["AD", "NCI"]
-        )
-        self.dual_thres_expt_results: pd.DataFrame = pd.DataFrame(
-            index=uncertainties, columns=["AD", "Intermediate", "NCI"]
-        )
         self.score_stats: pd.DataFrame = pd.DataFrame(
             index=uncertainties,
             columns=["mean_lin", "std_lin", "mean_probs", "std_probs"],
@@ -215,8 +152,8 @@ def simulate_sampling_experiment(
     n_samples: int,
     coefficients: np.ndarray | pd.Series,
 ) -> tuple[
-    SingleThresholdResults,
-    DualThresholdResults,
+    SingleUncertaintyResults,
+    SingleUncertaintyResults,
     NumpyFloat32Array1D,
     NumpyFloat32Array1D,
     NumpyFloat32Array1D,
@@ -256,17 +193,17 @@ def simulate_sampling_experiment(
     Returns
     -------
     tuple[
-        SingleThresholdResults,
-        DualThresholdResults,
+        SingleUncertaintyResults,
+        SingleUncertaintyResults,
         NumpyFloat32Array1D,
         NumpyFloat32Array1D,
         NumpyFloat32Array1D,
         NumpyFloat32Array1D,
     ]
-        A `SingleThresholdResults` instance, a `DualThresholdResults` instance, each
-        representing the results of the single and dual threshold simulations respec-
-        tively, and 1D NumPy arrays representing negative subscores, positive subscores,
-        linear classifier scores and probability scores respectively.
+        Two `SingleUncertaintyResults` instances, each representing the results
+        of the single and dual threshold simulations respec- tively, and 1D
+        NumPy arrays representing negative subscores, positive subscores, linear
+        classifier scores and probability scores respectively.
 
     Raises
     ------
@@ -295,8 +232,10 @@ def simulate_sampling_experiment(
     n_features, num_patients = tpm_df.shape
 
     # Single and dual threshold result variables
-    single_thres_res = SingleThresholdResults()
-    dual_thres_res = DualThresholdResults()
+    single_thres_res, dual_thres_res = (
+        SingleUncertaintyResults(),
+        SingleUncertaintyResults(),
+    )
 
     _means, _stds = tpm_df.mean(axis=1), tpm_df.std(axis=1)
 
@@ -344,12 +283,9 @@ def simulate_sampling_experiment(
             np.sum(preds != single_thres_res.gt_labels.loc[patient_id])
             >= diff_class_lim
         ):
-            if single_thres_res.gt_labels.loc[patient_id] == 0:
-                single_thres_res.nci_diff_cls_ids.append(patient_id)
-                single_thres_res.pred_labels.loc[patient_id] = 1
-            else:
-                single_thres_res.ad_diff_cls_ids.append(patient_id)
-                single_thres_res.pred_labels.loc[patient_id] = 0
+            single_thres_res.pred_labels.loc[patient_id] = (
+                1 if single_thres_res.gt_labels.loc[patient_id] == 0 else 0
+            )
         else:
             single_thres_res.pred_labels.loc[patient_id] = (
                 single_thres_res.gt_labels.loc[patient_id]
@@ -379,13 +315,6 @@ def simulate_sampling_experiment(
             dual_thres_res.pred_labels.loc[patient_id] = st.mode(
                 preds[preds != dual_thres_res.gt_labels.loc[patient_id]]
             )[0]
-            match dual_thres_res.gt_labels.loc[patient_id]:
-                case 0:
-                    dual_thres_res.nci_diff_cls_ids.append(patient_id)
-                case 1:
-                    dual_thres_res.int_diff_cls_ids.append(patient_id)
-                case 2:
-                    dual_thres_res.ad_diff_cls_ids.append(patient_id)
         else:
             dual_thres_res.pred_labels.loc[patient_id] = dual_thres_res.gt_labels.loc[
                 patient_id
@@ -502,21 +431,6 @@ def simulate_multiple_uncertainties(
         res.pos_subscore_arrs[uncertainty], res.neg_subscore_arrs[uncertainty] = (
             pos_subscores,
             neg_subscores,
-        )
-        res.single_thres_expt_results.loc[uncertainty, "AD"] = (
-            single_thres_res.ad_diff_cls_ids
-        )
-        res.single_thres_expt_results.loc[uncertainty, "NCI"] = (
-            single_thres_res.nci_diff_cls_ids
-        )
-        res.dual_thres_expt_results.loc[uncertainty, "AD"] = (
-            dual_thres_res.ad_diff_cls_ids
-        )
-        res.dual_thres_expt_results.loc[uncertainty, "Intermediate"] = (
-            dual_thres_res.int_diff_cls_ids
-        )
-        res.dual_thres_expt_results.loc[uncertainty, "NCI"] = (
-            dual_thres_res.nci_diff_cls_ids
         )
         res.score_stats.loc[uncertainty, "mean_lin"] = np.mean(lin_scores)
         res.score_stats.loc[uncertainty, "std_lin"] = np.std(lin_scores)
