@@ -2,13 +2,13 @@
 Functions for post-processing (visualization and downstream analysis) of simulation results.
 """
 
-from typing import Optional, Sequence
+from typing import Literal, Optional, Sequence
 from itertools import permutations
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.metrics import jaccard_score
+from sklearn.metrics import jaccard_score, confusion_matrix
 
 from .dtypes import NumpyFloat32Array1D, NumpyFloat32Array2D
 
@@ -204,10 +204,13 @@ def display_differential_classification_results_two_thresholds(
     )
 
 
-def calculate_sens_spec_dual_threshold(cnf_mat: NumpyFloat32Array2D) -> str:
+def calculate_sensitivity_specificity_and_predictive_values(
+    cnf_mat: NumpyFloat32Array2D,
+) -> pd.DataFrame:
     """
-    Calculates and displays sensitivity and specificity for Alzheimer's disease (AD)
-    and NCI categories from a confusion matrix for results from dual threshold simulations.
+    Calculates sensitivity, specificity and predictive values for Alzheimer's
+    disease (AD) and NCI categories from a confusion matrix for results from
+    single and dual threshold simulations.
 
     Parameters
     ----------
@@ -216,45 +219,31 @@ def calculate_sens_spec_dual_threshold(cnf_mat: NumpyFloat32Array2D) -> str:
 
     Returns
     -------
-    str
-        Markdown table representing results of the sensitivity and specificity calculations
-
-    Raises
-    ------
-    ValueError:
-        Confusion matrix should be 3x3.
+    pd.DataFrame
+        Dataframe containing results of the sensitivity, specificity and
+        predictive value calculations
     """
-    if cnf_mat.shape[0] != 3:
-        raise ValueError("Confusion matrix should be 3x3.")
-    # AD
-    ad_tp = cnf_mat[2, 2]
-    ad_tn = np.sum(cnf_mat[:2, :2])
-    ad_fp = np.sum(cnf_mat[:2, 2])
-    ad_fn = np.sum(cnf_mat[2, :2])
-    sensitivity_ad = ad_tp / (ad_tp + ad_fn)
-    specificity_ad = ad_tn / (ad_tn + ad_fp)
-    ppv_ad = ad_tp / (ad_tp + ad_fp)
-    npv_ad = ad_tn / (ad_tn + ad_fn)
+    res = pd.DataFrame(
+        index=["NCI", "AD"], columns=["sensitivity", "specificity", "ppv", "npv"]
+    )
 
-    # NCI
-    nci_tp = cnf_mat[0, 0]
-    nci_tn = np.sum(cnf_mat[1:, 1:])
-    nci_fp = np.sum(cnf_mat[1:, 0])
-    nci_fn = np.sum(cnf_mat[0, 1:])
-    sensitivity_nci = nci_tp / (nci_tp + nci_fn)
-    specificity_nci = nci_tn / (nci_tn + nci_fp)
-    ppv_nci = nci_tp / (nci_tp + nci_fp)
-    npv_nci = nci_tn / (nci_tn + nci_fn)
+    label_idxs = list(range(2)) if cnf_mat.shape[0] == 2 else [0, 2]
+    for label, label_name in zip(label_idxs, res.index):
+        tp = cnf_mat[label, label]
+        tn = (
+            np.sum(cnf_mat[:label, :label])
+            + np.sum(cnf_mat[label + 1 :, label + 1 :])
+            + np.sum(cnf_mat[label + 1 :, :label])
+            + np.sum(cnf_mat[:label, label + 1 :])
+        )
+        fp = np.sum(cnf_mat[:label, label]) + np.sum(cnf_mat[label + 1 :, label])
+        fn = np.sum(cnf_mat[label, :label]) + np.sum(cnf_mat[label, label + 1 :])
+        res.loc[label_name, "sensitivity"] = tp / (tp + fn)
+        res.loc[label_name, "specificity"] = tn / (tn + fp)
+        res.loc[label_name, "ppv"] = tp / (tp + fp)
+        res.loc[label_name, "npv"] = tn / (tn + fn)
 
-    string = f"""
-    | **Metric**    | **AD (%)** | **NCI (%)** |
-    |---------------|------------|-------------|
-    | Sensitivity   | {sensitivity_ad * 100:.2f} | {sensitivity_nci * 100:.2f}|
-    | Specificity   | {specificity_ad * 100:.2f} | {specificity_nci * 100:.2f} |
-    | PPV           | {ppv_ad * 100:.2f} | {ppv_nci * 100:.2f} |
-    | NPV           | {npv_ad * 100:.2f} | {npv_nci * 100:.2f} |
-    """
-    return string
+    return res
 
 
 def calculate_subject_wise_agreement(
@@ -377,6 +366,111 @@ def calculate_subject_wise_disagreement(
     return subj_wise_disagreement
 
 
+def build_sensitivity_specificity_df(
+    pathos_df: pd.DataFrame,
+    gt_probs_ser: pd.Series,
+    label: Literal["AD", "NCI"],
+) -> pd.DataFrame:
+    """
+    Builds a DataFrame of sensitivity and specificity through a range of
+    thresholds (1 to 99) and calculates the sensitivity and specificity for a
+    specified label at each threshold, returning these results in a pandas
+    DataFrame.
+
+    Parameters
+    ----------
+    pathos_df : pd.DataFrame
+        A pandas DataFrame expected to have an 'index' that aligns with
+        `gt_probs_ser` and a 'Disease' column with values like "AD" or "NCI".
+    gt_probs_ser : pd.Series
+        A pandas Series containing ground truth probabilities, typically ranging
+        from 0 to 1.
+    label : Literal["AD", "NCI"]
+        The specific label ("AD" or "NCI") for which to calculate sensitivity
+        and specificity across thresholds.
+
+    Returns
+    -------
+    pd.DataFrame
+        A pandas DataFrame with columns "threshold", "sensitivity", and
+        "specificity". Each row corresponds to a threshold from 1 to 99,
+        and the respective sensitivity and specificity values for the given label.
+
+    See Also
+    --------
+    get_sensitivity_and_specificity : Calculates sensitivity and specificity for
+    a single threshold.
+    """
+    sens_spec_df = pd.DataFrame(columns=["threshold", "sensitivity", "specificity"])
+    sens_spec_df["threshold"] = np.arange(1, 99)
+    temp = sens_spec_df["threshold"].apply(
+        lambda thres: get_sensitivity_and_specificity(
+            thres, pathos_df, gt_probs_ser, label
+        )
+    )
+    sens_spec_df.loc[:, "sensitivity"] = temp.apply(lambda x: x[0])
+    sens_spec_df.loc[:, "specificity"] = temp.apply(lambda x: x[1])
+    return sens_spec_df
+
+
+def get_threshold(sensitivity: float, sens_spec_df: pd.DataFrame) -> float:
+    """
+    Retrieves the probability threshold corresponding to a target sensitivity.
+
+    This function finds the highest threshold from a sensitivity/specificity
+    DataFrame that yields a sensitivity greater than or equal to the
+    specified target sensitivity.
+
+    Parameters
+    ----------
+    sensitivity : float
+        The target sensitivity value (as a percentage, e.g., 90 for 90%)
+        for which to find the corresponding threshold.
+    sens_spec_df : pd.DataFrame
+        A pandas DataFrame, typically generated by `build_sensitivity_specificity_df`,
+        containing "threshold" and "sensitivity" columns.
+
+    Returns
+    -------
+    float
+        The probability threshold (as an integer percentage, e.g., 50) that
+        corresponds to the highest threshold where the sensitivity is
+        greater than or equal to the `sensitivity` input.
+
+    Raises
+    ------
+    ValueError
+        If the `sensitivity` provided is outside the range of sensitivities
+        available in the `sens_spec_df`.
+
+    See Also
+    --------
+    build_sensitivity_specificity_df : Generates the DataFrame used by this function.
+    """
+    if (
+        not sens_spec_df["sensitivity"].min()
+        < sensitivity / 100
+        < sens_spec_df["sensitivity"].max()
+    ):
+        raise ValueError(
+            "Sensitivity out of bounds. Choose a sensitivity between"
+            + f" {sens_spec_df['sensitivity'].min() * 100:.2f}% and"
+            + f" {sens_spec_df['sensitivity'].max() * 100:.2f}%"
+        )
+    # If sensitivity is a decreasing function of threshold, return last threshold value
+    if (
+        sens_spec_df.loc[0, "sensitivity"]
+        > sens_spec_df.loc[sens_spec_df.shape[0] - 1, "sensitivity"]
+    ):
+        return sens_spec_df.loc[
+            sens_spec_df["sensitivity"] >= sensitivity / 100, "threshold"
+        ].iloc[-1]
+    # Else return first threshold value
+    return sens_spec_df.loc[
+        sens_spec_df["sensitivity"] >= sensitivity / 100, "threshold"
+    ].iloc[0]
+
+
 def plot_bland_altman(
     arr_1: NumpyFloat32Array1D,
     arr_2: NumpyFloat32Array1D,
@@ -452,6 +546,58 @@ def plot_bland_altman(
         plt.show()
         return
     plt.close()
+
+
+def get_sensitivity_and_specificity(
+    thres: float,
+    pathos_df: pd.DataFrame,
+    gt_probs_series: pd.Series,
+    label: Literal["AD", "NCI"],
+) -> tuple[float, float]:
+    """
+    Calculate sensitivity and specificity for a given threshold and label ("AD"
+    or "NCI") at a given probability threshold. It uses a confusion matrix
+    derived from ground truth probabilities and a DataFrame containing disease
+    classifications.
+
+    Parameters
+    ----------
+    thres
+        The probability threshold (as a percentage, e.g., 50 for 50%) to
+        binarize the `gt_probs_series`.
+    pathos_df
+        A pandas DataFrame expected to have an 'index' that aligns with
+        `gt_probs_series` and a 'Disease' column with values like "AD" or "NCI".
+    gt_probs_series
+        A pandas Series containing ground truth probabilities.
+    label
+        The specific label for which to calculate sensitivity and specificity.
+        "AD" refers to Alzheimer's Disease, and "NCI" refers to Non Cognitively
+        Impaired.
+
+    Returns
+    -------
+    tuple[float, float]
+        A tuple containing the sensitivity and specificity, respectively, for the
+        specified `label` at the given `thres`. Both values are floats between 0 and 1.
+
+    See Also
+    --------
+    build_sensitivity_specificity_df
+        Builds a DataFrame of sensitivity and specificity across thresholds.
+    calculate_sensitivity_specificity_and_predictive_values
+        Helper function to compute sensitivity, specificity and predictive
+        values from a confusion matrix.
+
+    """
+    gt_probs_arg = gt_probs_series.apply(lambda x: 1 if x >= thres / 100 else 0)[
+        pathos_df.index
+    ]
+    cnf_mat = confusion_matrix(
+        pathos_df["Disease"].apply(lambda x: 1 if x == "AD" else 0), gt_probs_arg
+    )
+    res = calculate_sensitivity_specificity_and_predictive_values(cnf_mat)
+    return res.loc[label, "sensitivity"], res.loc[label, "specificity"]
 
 
 def plot_v_plot(
