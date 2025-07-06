@@ -231,9 +231,9 @@ def calculate_sensitivity_specificity_and_predictive_values(
     ValueError
         If the `label_idx` supplied is not in either of `gt_labels` or `pred_labels`.
     """
-    cnf_mat = confusion_matrix(gt_labels, pred_labels)
     if label_idx not in np.unique(gt_labels) or label_idx not in np.unique(pred_labels):
         raise ValueError("Label not found in one of gt_labels or pred_labels array")
+    cnf_mat = confusion_matrix(gt_labels, pred_labels)
     tp = cnf_mat[label_idx, label_idx]
     tn = (
         np.sum(cnf_mat[:label_idx, :label_idx])
