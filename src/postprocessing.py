@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from sklearn.metrics import jaccard_score, confusion_matrix
 
 from .dtypes import NumpyFloat32Array1D, NumpyFloat32Array2D
@@ -498,7 +500,7 @@ def plot_bland_altman(
     *,
     save: bool = False,
     show: bool = True,
-) -> None:
+) -> Axes:
     """
     Generate a Bland-Altman plot for two sets of measurements `arr_1` and `arr_2`.
 
@@ -520,7 +522,8 @@ def plot_bland_altman(
 
     Returns
     -------
-    None
+    matplotlib.axes.Axes
+        A matplotlib `Axes` object corresponding to the generated plot.
 
     Raises
     ------
@@ -575,7 +578,7 @@ def plot_v_plot(
     title: str,
     show_axis_labels: bool = True,
     show_legend: bool = False,
-) -> None:
+) -> Axes:
     """
     Creates a v-plot between the agreement of simulated scores and classifier scores for
     subjects against the inferent probability scores of the subjects.
@@ -598,7 +601,8 @@ def plot_v_plot(
 
     Returns
     -------
-    None
+    matplotlib.axes.Axes
+        A matplotlib `Axes` object corresponding to the generated plot.
     """
     gt_probs = gt_probs.sort_values()
     _temp = subj_wise_agreement.loc[gt_probs.index, :]
@@ -632,7 +636,6 @@ def plot_v_plot(
             loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=len(uncertainties) // 3
         )
 
-
 def generate_waterfall_plot(
     *,
     threshold: float,
@@ -643,7 +646,7 @@ def generate_waterfall_plot(
     title: str,
     legend_title: str = "",
     save: bool = False,
-) -> None:
+) -> Figure:
     """
     Creates a waterfall plot showing a comparison between predictions by a binary
     classifier against the "true classes" specified by the `color_labels_data`.
@@ -674,7 +677,8 @@ def generate_waterfall_plot(
 
     Returns
     -------
-    None
+    matplotlib.figure.Figure
+        The matplotlib figure corresponding to the generated plot.
 
     Raises
     ------
@@ -705,7 +709,7 @@ def generate_waterfall_plot(
     probs_df["x"] = np.linspace(-1, 40, probs.shape[0])
     probs_df["probs"] -= threshold
 
-    plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(12, 8))
     unique_labels = probs_df["color_labels"].unique()
 
     for label, color in zip(unique_labels, colors):
@@ -727,6 +731,7 @@ def generate_waterfall_plot(
     if save:
         plt.savefig(f"{title}.png")
     plt.show()
+    return fig
 
 
 def calculate_jaccard_index(
@@ -783,7 +788,7 @@ def plot_jaccard_index_plot(
     dual_thres_plot_title: str,
     figure_title: str,
     save: bool = False,
-) -> None:
+) -> Figure:
     """
     Generates a figure with two subplots, each showing the Jaccard index for
     different class labels as a function of an uncertainty percentage. It is
@@ -822,8 +827,8 @@ def plot_jaccard_index_plot(
 
     Returns
     -------
-    None
-        This function does not return any value. It displays a matplotlib plot.
+    matplotlib.figure.Figure
+        The matplotlib figure corresponding to the generated plot.
 
     Raises
     ------
@@ -891,9 +896,10 @@ def plot_jaccard_index_plot(
         bbox_to_anchor=(0.5, 0.03),
     )
     fig.suptitle(figure_title)
-    plt.show()
+    fig.show()
     if save:
         fig.savefig(f"{figure_title}.png")
+    return fig
 
 
 def plot_differential_classification_results(
@@ -903,7 +909,7 @@ def plot_differential_classification_results(
     ten_pct_sim_mismatch_pred_labels_dict: dict[int, pd.Series],
     labels_dict: dict[list[str], str],
     figure_title: str,
-) -> None:
+) -> Figure:
     """
     Plots differential classification results for single and dual threshold scenarios.
 
@@ -934,8 +940,8 @@ def plot_differential_classification_results(
 
     Returns
     -------
-    None
-        This function does not return any value. It displays a matplotlib figure.
+    matplotlib.figure.Figure
+        The matplotlib figure generated.
 
     See Also
     --------
@@ -999,3 +1005,5 @@ def plot_differential_classification_results(
             boxstyle="round,pad=0.5", facecolor="white", edgecolor="black", alpha=0.8
         ),
     )
+    fig.show()
+    return fig
