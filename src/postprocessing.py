@@ -416,11 +416,13 @@ def build_sensitivity_specificity_df(
     sens_spec_df = pd.DataFrame(
         columns=["threshold", "sensitivity", "specificity", "ppv", "npv"]
     )
-    sens_spec_df["threshold"] = np.arange(1, 99)
+    sens_spec_df["threshold"] = np.arange(1, 100)
     temp = sens_spec_df["threshold"].apply(
         lambda thres: calculate_sensitivity_specificity_and_predictive_values(
             pathos_df["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-            gt_probs_ser[pathos_df.index].apply(lambda x: 1 if x >= thres / 100 else 0),
+            gt_probs_ser[pathos_df.index].apply(
+                lambda x: 1 if x >= thres / 100.0 else 0
+            ),
             label_idx=1 if label == "AD" else 0,
         )
     )
