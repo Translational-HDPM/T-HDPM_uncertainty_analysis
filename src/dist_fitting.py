@@ -12,6 +12,7 @@ import statsmodels.discrete.discrete_model as smd
 
 from .dtypes import NumpyFloat32Array1D
 
+
 def test_gamma_fit(
     data: NumpyFloat32Array1D,
 ) -> tuple[float, float, float, float, float]:

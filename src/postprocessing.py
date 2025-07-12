@@ -636,6 +636,7 @@ def plot_v_plot(
             loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=len(uncertainties) // 3
         )
 
+
 def generate_waterfall_plot(
     *,
     threshold: float,

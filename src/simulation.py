@@ -255,7 +255,7 @@ def simulate_sampling_experiment(
     for j in range(num_patients):
         samples = np.zeros((n_features, n_samples))
         patient_id = tpm_df.columns[j]
-        
+
         # Spawn n_feature seeds, one seed per feature
         seeds = seed_seq.spawn(n_features)
         for i in range(n_features):
@@ -441,11 +441,17 @@ def simulate_multiple_uncertainties(
         (
             res.single_thres_gt_series[uncertainty],
             res.single_thres_pred_series[uncertainty],
-        ) = single_thres_res.gt_series, single_thres_res.preds_series
+        ) = (
+            single_thres_res.gt_series,
+            single_thres_res.preds_series,
+        )
         (
             res.dual_thres_gt_series[uncertainty],
             res.dual_thres_pred_series[uncertainty],
-        ) = dual_thres_res.gt_series, dual_thres_res.preds_series
+        ) = (
+            dual_thres_res.gt_series,
+            dual_thres_res.preds_series,
+        )
         res.single_thres_pred_labels[uncertainty] = single_thres_res.pred_labels
         res.dual_thres_pred_labels[uncertainty] = dual_thres_res.pred_labels
         if res.single_thres_gt_labels is None:

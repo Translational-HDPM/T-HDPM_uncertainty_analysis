@@ -3,11 +3,14 @@ Functions for calculations involving inference with a logistic regression classi
 """
 
 import numpy as np
+import pandas as pd
 
-from .dtypes import NumpyFloat32Array2D
+from .dtypes import NumpyFloat32Array1D, NumpyFloat32Array2D
+
 
 def linear_classifier_subscores(
-    coefficients: NumpyFloat32Array2D, values: NumpyFloat32Array2D
+    coefficients: NumpyFloat32Array1D | NumpyFloat32Array2D,
+    values: NumpyFloat32Array1D | NumpyFloat32Array2D,
 ) -> tuple[NumpyFloat32Array2D, NumpyFloat32Array2D]:
     """
     Calculate positive and negative linear classifier sub-scores and return them
@@ -32,14 +35,19 @@ def linear_classifier_subscores(
         -cients as numpy arrays.
     """
     _coeff = coefficients[coefficients.argsort()]
-    _values = values[coefficients.argsort(), :]
+    _values = (
+        values[coefficients.argsort()]
+        if len(values.shape) == 1
+        else values[coefficients.argsort(), :]
+    )
     res = _coeff[:, np.newaxis] * _values
     return np.sum(res[_coeff < 0.0, :], axis=0), np.sum(res[_coeff >= 0.0, :], axis=0)
 
 
 def linear_classifier_score(
-    coefficients: NumpyFloat32Array2D, values: NumpyFloat32Array2D
-) -> float | NumpyFloat32Array2D:
+    coefficients: NumpyFloat32Array1D | pd.Series,
+    values: NumpyFloat32Array1D | NumpyFloat32Array2D | pd.DataFrame,
+) -> float | NumpyFloat32Array1D:
     r"""
     Calculate the score of a linear classifier by multiplying the coefficients with
     given data. By a "linear classifier" we mean a linear function of the input $x$.
@@ -59,10 +67,20 @@ def linear_classifier_score(
 
     Returns
     -------
-    float | np.ndarray[tuple[int, int], np.dtype[np.float32]]
+    float | np.ndarray[tuple[int], np.dtype[np.float32]]
         Value(s) $y$ as the output of the linear transformation as a numpy array.
     """
-    return np.sum(coefficients * values, axis=0)
+    if coefficients.shape[0] != values.shape[0]:
+        raise ValueError(
+            f"Number of features in coefficents, {coefficients.shape[0]} "
+            + f"!= Number of features in values, {values.shape[0]}"
+        )
+    _coefficients = (
+        coefficients[:, np.newaxis]
+        if len(coefficients.shape) != len(values.shape)
+        else coefficients
+    )
+    return np.sum(_coefficients * values, axis=0)
 
 
 def antilogit_classifier_score(
@@ -96,10 +114,10 @@ def antilogit_classifier_score(
 
 
 def z_score(
-    x: float | NumpyFloat32Array2D,
-    mean: float | NumpyFloat32Array2D,
-    std: float | NumpyFloat32Array2D,
-) -> float | NumpyFloat32Array2D:
+    x: float | NumpyFloat32Array1D | NumpyFloat32Array2D,
+    mean: float | NumpyFloat32Array1D | NumpyFloat32Array2D,
+    std: float | NumpyFloat32Array1D | NumpyFloat32Array2D,
+) -> float | NumpyFloat32Array1D | NumpyFloat32Array2D:
     r"""
     Given means and standard deviations of the data, converts given data to
     z-scores. For a measurement $x$, mean $\mu$ and standard deviation $\sigma$,
@@ -123,4 +141,6 @@ def z_score(
     float | np.ndarray[tuple[int, int], np.dtype[np.float32]]
         A float value or a numpy array representing the z-score.
     """
+    if isinstance(std, np.ndarray) and any(std == 0):
+        raise ZeroDivisionError("Standard deviation array contains zeros.")
     return (x - mean) / std
