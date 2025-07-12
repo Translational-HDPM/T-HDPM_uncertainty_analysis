@@ -6,9 +6,12 @@ import context
 import numpy as np
 import pytest
 
-from src.logreg_classifier import (antilogit_classifier_score,
-                                   linear_classifier_score,
-                                   linear_classifier_subscores, z_score)
+from src.logreg_classifier import (
+    antilogit_classifier_score,
+    linear_classifier_score,
+    linear_classifier_subscores,
+    z_score,
+)
 
 print(context.foo)  # To silence ruff unused import checks
 
