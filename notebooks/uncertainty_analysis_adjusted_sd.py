@@ -67,7 +67,9 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""Monte Carlo techniques are recommended by FDA to estimate diagnostic uncertainty of multi-dimensional classifiers. Overall uncertainty of high dimensional classifiers can be determined or estimated. Besides noted variation, sample site, operator and instrument variation need to be considered.""")
+    mo.md(
+        r"""Monte Carlo techniques are recommended by FDA to estimate diagnostic uncertainty of multi-dimensional classifiers. Overall uncertainty of high dimensional classifiers can be determined or estimated. Besides noted variation, sample site, operator and instrument variation need to be considered."""
+    )
     return
 
 
@@ -122,8 +124,6 @@ def _():
         build_sensitivity_specificity_df,
         calculate_sensitivity_specificity_and_predictive_values,
         calculate_subject_wise_agreement,
-        calculate_subject_wise_disagreement,
-        get_threshold,
         plot_v_plot,
         generate_waterfall_plot,
         plot_differential_classification_results,
@@ -142,7 +142,6 @@ def _():
         build_sensitivity_specificity_df,
         calculate_sensitivity_specificity_and_predictive_values,
         calculate_subject_wise_agreement,
-        calculate_subject_wise_disagreement,
         generate_waterfall_plot,
         np,
         pd,
@@ -180,7 +179,8 @@ def _(os):
     master_seed = 123  # Random number seed
     num_parallel_workers = (
         os.cpu_count()
-    )  # Number of parallel jobs to run for simulation
+        # Number of parallel jobs to run for simulation
+    )
     return master_seed, num_parallel_workers
 
 
@@ -208,7 +208,7 @@ def _(
     num_patients = (
         num_patients_slider.value
     )  # Total number of samples/subjects/patients
-    return mean_TPM, n_samples, uncertainties
+    return mean_TPM, n_samples, num_patients, uncertainties
 
 
 @app.cell(hide_code=True)
@@ -332,7 +332,9 @@ def _(np, raw_data):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""The raw dataset contains technical replicates for some subjects. We average the technical replicates to reduce them to a single data point.""")
+    mo.md(
+        r"""The raw dataset contains technical replicates for some subjects. We average the technical replicates to reduce them to a single data point."""
+    )
     return
 
 
@@ -366,21 +368,23 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used.""")
+    mo.md(
+        r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used."""
+    )
     return
 
 
 @app.cell(hide_code=True)
 def _(patients_df_1):
     means = patients_df_1.mean(axis=1)
-    stds = patients_df_1.std(axis=1)
     return (means,)
 
 
 @app.cell(hide_code=True)
-def _(coefficients, mean_TPM, means, patients_df_1):
+def _(coefficients, mean_TPM, means, num_patients, patients_df_1):
     coefficients_1 = coefficients[means >= mean_TPM]
     patients_df_2 = patients_df_1[means >= mean_TPM]
+    patients_df_2 = patients_df_2.iloc[:, :num_patients]
     return coefficients_1, patients_df_2
 
 
@@ -396,7 +400,9 @@ def _(mo, patients_df_1, patients_df_2):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Selecting the Probability threshold based on Sensitivity and Specificity""")
+    mo.md(
+        r"""### Selecting the Probability threshold based on Sensitivity and Specificity"""
+    )
     return
 
 
@@ -540,7 +546,9 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo, single_thres):
-    mo.md(rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. However, if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold and upper thresholds farther apart from each other, but in the vicinity of the calculated value of the dichotomous decision threshold ({single_thres:.4f}).""")
+    mo.md(
+        rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. However, if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold and upper thresholds farther apart from each other, but in the vicinity of the calculated value of the dichotomous decision threshold ({single_thres:.4f})."""
+    )
     return
 
 
@@ -562,7 +570,6 @@ def _(mo):
 def _(single_thres, threshold_step_slider):
     dual_thres_low = max(0.01, single_thres - threshold_step_slider.value)
     dual_thres_high = min(1.0, single_thres + threshold_step_slider.value)
-    # print(f"{dual_thres_low=:.4f} {dual_thres_high=:.4f}")
     return dual_thres_high, dual_thres_low
 
 
@@ -613,19 +620,25 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values.""")
+    mo.md(
+        r"""We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values."""
+    )
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""In general, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation) we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$.""")
+    mo.md(
+        r"""In general, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation) we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$."""
+    )
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf)).""")
+    mo.md(
+        r"""However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf))."""
+    )
     return
 
 
@@ -821,8 +834,8 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(
     plot_differential_classification_results,
-    res: "MultiUncertaintyResults",
-    res_1_diff_cls: "MultiUncertaintyResults",
+    res,
+    res_1_diff_cls,
     target_ad_specificity,
     uncertainties,
 ):
@@ -842,8 +855,8 @@ def _(
     ad_spec_high,
     nci_spec_low,
     plot_differential_classification_results,
-    res: "MultiUncertaintyResults",
-    res_1_diff_cls: "MultiUncertaintyResults",
+    res,
+    res_1_diff_cls,
     uncertainties,
 ):
     plot_differential_classification_results(
@@ -861,7 +874,7 @@ def _(
 def _(
     generate_waterfall_plot,
     gt_probs,
-    res: "MultiUncertaintyResults",
+    res,
     single_thres,
     uncertainties,
 ):
@@ -900,7 +913,7 @@ def _(mo):
 def _(
     calculate_subject_wise_agreement,
     n_samples,
-    res: "MultiUncertaintyResults",
+    res,
     uncertainties,
 ):
     single_thres_subj_wise_agreement = calculate_subject_wise_agreement(
@@ -916,33 +929,6 @@ def _(
         n_samples=n_samples,
     )
     return dual_thres_subj_wise_agreement, single_thres_subj_wise_agreement
-
-
-@app.cell(hide_code=True)
-def _(res: "MultiUncertaintyResults"):
-    categories = ["NCI", "Intermediate", "AD"]
-    gt_arr_dict, pred_arr_dict = (
-        res.dual_thres_gt_series,
-        res.dual_thres_pred_series,
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(
-    calculate_subject_wise_disagreement,
-    n_samples,
-    res: "MultiUncertaintyResults",
-    uncertainties,
-):
-    dual_thres_subj_wise_disagreement = calculate_subject_wise_disagreement(
-        gt_series_dict=res.dual_thres_gt_series,
-        pred_series_dict=res.dual_thres_pred_series,
-        uncertainties=uncertainties,
-        categories=["NCI", "Intermediate", "AD"],
-        n_samples=n_samples,
-    )
-    return
 
 
 @app.cell(hide_code=True)
