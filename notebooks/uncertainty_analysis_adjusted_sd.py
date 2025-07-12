@@ -109,7 +109,7 @@ def _():
     import sys
     from pathlib import Path
 
-    sys.path.insert(0, str(Path.cwd().parent.resolve()))
+    sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
     return Path, os
 
 
@@ -126,11 +126,15 @@ def _():
     from src.postprocessing import (
         build_sensitivity_specificity_df,
         calculate_sensitivity_specificity_and_predictive_values,
-        calculate_subject_wise_agreement, generate_waterfall_plot,
-        plot_differential_classification_results, plot_v_plot)
-    from src.simulation import (MultiUncertaintyResults,
-                                simulate_multiple_uncertainties)
-
+        calculate_subject_wise_agreement,
+        generate_waterfall_plot,
+        plot_differential_classification_results,
+        plot_v_plot,
+    )
+    from src.simulation import (
+        MultiUncertaintyResults,
+        simulate_multiple_uncertainties,
+    )
     return (
         GridSpec,
         MultiUncertaintyResults,
@@ -286,7 +290,7 @@ def _(mo, patients_df_2):
 
 @app.cell(hide_code=True)
 def _(Path, pd):
-    data_root = Path.cwd().parent.parent / "raw_data"
+    data_root = Path(__file__).parent.parent.parent / "raw_data"
     raw_data = pd.read_excel(
         data_root / "ClusterMarkers_1819ADcohort.congregated_DR.xlsx", sheet_name=1
     )
@@ -454,7 +458,9 @@ def _(build_sensitivity_specificity_df, gt_probs, pathos_2):
 
 @app.cell(hide_code=True)
 def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
-    _fig, _ = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(18, 6))
+    _fig, _ = plt.subplots(
+        nrows=1, ncols=2, sharex=True, sharey=True, figsize=(18, 6)
+    )
     plt.subplot(121)
     sns.lineplot(
         data=ad_sens_spec_df,
@@ -522,10 +528,12 @@ def _(
     pathos_2,
     single_thres,
 ):
-    ad_sens, ad_spec, _, _ = calculate_sensitivity_specificity_and_predictive_values(
-        pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-        gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
-        0,
+    ad_sens, ad_spec, _, _ = (
+        calculate_sensitivity_specificity_and_predictive_values(
+            pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
+            gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
+            0,
+        )
     )
     ad_spec = ad_spec * 100.0
     ad_sens = ad_sens * 100.0
@@ -719,7 +727,6 @@ def _(np):
         sqrt_sigma = a / (np.log2(tpm + 1) + b) + c
         scaled_pct_sd = scaling_factor * uncertainty_pct * sqrt_sigma**2.0
         return scaled_pct_sd / 100
-
     return (calculate_scaled_sd,)
 
 
@@ -772,7 +779,6 @@ def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
         rng = np.random.default_rng(seed)
         scaled_sd = calculate_scaled_sd(tpm, baseline_rsd * 100)
         return np.pow(2.0, rng.normal(np.log2(tpm + 1), scaled_sd, n_points))
-
     return (sampler,)
 
 
@@ -829,8 +835,8 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(
     plot_differential_classification_results,
-    res,
-    res_1_diff_cls,
+    res: "MultiUncertaintyResults",
+    res_1_diff_cls: "MultiUncertaintyResults",
     target_ad_specificity,
     uncertainties,
 ):
@@ -850,8 +856,8 @@ def _(
     ad_spec_high,
     nci_spec_low,
     plot_differential_classification_results,
-    res,
-    res_1_diff_cls,
+    res: "MultiUncertaintyResults",
+    res_1_diff_cls: "MultiUncertaintyResults",
     uncertainties,
 ):
     plot_differential_classification_results(
@@ -869,7 +875,7 @@ def _(
 def _(
     generate_waterfall_plot,
     gt_probs,
-    res,
+    res: "MultiUncertaintyResults",
     single_thres,
     uncertainties,
 ):
@@ -908,7 +914,7 @@ def _(mo):
 def _(
     calculate_subject_wise_agreement,
     n_samples,
-    res,
+    res: "MultiUncertaintyResults",
     uncertainties,
 ):
     single_thres_subj_wise_agreement = calculate_subject_wise_agreement(
@@ -955,7 +961,9 @@ def _(
         False,
     )
     plt.xlim([0.0, 1.0])
-    plt.ylabel("Percent agreement between simulated and\n inferent scores for subjects")
+    plt.ylabel(
+        "Percent agreement between simulated and\n inferent scores for subjects"
+    )
     plt.gca().set_xticklabels([])
     fig.add_subplot(gs[1])
     plot_v_plot(
@@ -1063,7 +1071,6 @@ def _(mo):
 @app.cell(hide_code=True)
 def _():
     import marimo as mo
-
     return (mo,)
 
 
