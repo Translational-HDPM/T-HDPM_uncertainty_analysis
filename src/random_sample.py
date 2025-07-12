@@ -4,12 +4,8 @@ Functions to draw random samples from specific probability distributions.
 
 import numpy as np
 
-from .dtypes import (
-    NumpyInt32Array1D,
-    NumpyInt32Array2D,
-    NumpyFloat32Array1D,
-    NumpyFloat64Array1D,
-)
+from .dtypes import (NumpyFloat32Array1D, NumpyFloat64Array1D,
+                     NumpyInt32Array1D, NumpyInt32Array2D)
 
 
 def sample_zero_inflated_poisson(
