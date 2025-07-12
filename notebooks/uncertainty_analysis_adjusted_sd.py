@@ -228,7 +228,7 @@ def _(mo, patients_df_1):
         start=100,
         stop=10_000,
         step=100,
-        value=1000,
+        value=100,
         label="Number of Monte Carlo samples per TPM value",
         show_value=True,
     )
@@ -508,12 +508,6 @@ def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
     _fig.suptitle(
         "Sensitivity and specificity versus probability threshold curves for AD and NCI categories."
     )
-    return
-
-
-@app.cell
-def _(ad_sens_spec_df):
-    ad_sens_spec_df
     return
 
 
