@@ -2,20 +2,16 @@
 Unit tests for functions in the module postprocessing.py.
 """
 
-import pytest
+import context
 import numpy as np
 import pandas as pd
+import pytest
 
-import context
 from src.postprocessing import (
-    get_differential_classification,
-    get_threshold,
-    build_sensitivity_specificity_df,
-    calculate_jaccard_index,
-    calculate_subject_wise_agreement,
-    calculate_subject_wise_disagreement,
+    build_sensitivity_specificity_df, calculate_jaccard_index,
     calculate_sensitivity_specificity_and_predictive_values,
-)
+    calculate_subject_wise_agreement, calculate_subject_wise_disagreement,
+    get_differential_classification, get_threshold)
 
 print(context.foo)  # To handle ruff unused imports error
 

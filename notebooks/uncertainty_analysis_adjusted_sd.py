@@ -115,25 +115,21 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    import pandas as pd
-    import numpy as np
     import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
     import seaborn as sns
     from matplotlib.gridspec import GridSpec
+
+    from src.dtypes import NumpyFloat32Array1D
+    from src.logreg_classifier import antilogit_classifier_score
     from src.postprocessing import (
         build_sensitivity_specificity_df,
         calculate_sensitivity_specificity_and_predictive_values,
-        calculate_subject_wise_agreement,
-        plot_v_plot,
-        generate_waterfall_plot,
-        plot_differential_classification_results,
-    )
-    from src.logreg_classifier import antilogit_classifier_score
-    from src.simulation import (
-        MultiUncertaintyResults,
-        simulate_multiple_uncertainties,
-    )
-    from src.dtypes import NumpyFloat32Array1D
+        calculate_subject_wise_agreement, generate_waterfall_plot,
+        plot_differential_classification_results, plot_v_plot)
+    from src.simulation import (MultiUncertaintyResults,
+                                simulate_multiple_uncertainties)
 
     return (
         GridSpec,

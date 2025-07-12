@@ -3,14 +3,12 @@ Unit tests for the functions in the module logreg_classifier
 """
 
 import context
-import pytest
 import numpy as np
-from src.logreg_classifier import (
-    linear_classifier_subscores,
-    linear_classifier_score,
-    antilogit_classifier_score,
-    z_score,
-)
+import pytest
+
+from src.logreg_classifier import (antilogit_classifier_score,
+                                   linear_classifier_score,
+                                   linear_classifier_subscores, z_score)
 
 print(context.foo)  # To silence ruff unused import checks
 

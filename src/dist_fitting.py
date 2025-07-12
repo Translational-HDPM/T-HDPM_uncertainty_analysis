@@ -4,8 +4,8 @@ Functions to test fit of data to various probability distributions.
 
 from typing import Sequence
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import scipy.stats as st
 import statsmodels.discrete.count_model as cm
 import statsmodels.discrete.discrete_model as smd

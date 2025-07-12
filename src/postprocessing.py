@@ -2,15 +2,16 @@
 Functions for post-processing (visualization and downstream analysis) of simulation results.
 """
 
-from typing import Literal, Optional, Sequence
 from itertools import permutations
+from typing import Literal, Optional, Sequence
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from sklearn.metrics import jaccard_score, confusion_matrix
+from sklearn.metrics import confusion_matrix, jaccard_score
 
 from .dtypes import NumpyFloat32Array1D, NumpyFloat32Array2D
 

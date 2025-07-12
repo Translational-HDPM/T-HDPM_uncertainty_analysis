@@ -3,19 +3,18 @@ Functions and classes for Monte Carlo simulations on RNA-seq data for Alzheimer'
 """
 
 import warnings
-from typing import Callable
 from dataclasses import dataclass, field
+from typing import Callable
+
 import numpy as np
 import pandas as pd
 import scipy.stats as st
 from joblib import Parallel, delayed
-from .logreg_classifier import (
-    linear_classifier_score,
-    linear_classifier_subscores,
-    antilogit_classifier_score,
-    z_score,
-)
+
 from .dtypes import NumpyFloat32Array1D
+from .logreg_classifier import (antilogit_classifier_score,
+                                linear_classifier_score,
+                                linear_classifier_subscores, z_score)
 
 warnings.filterwarnings("ignore")  # ignore all warnings
 
