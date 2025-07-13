@@ -130,6 +130,7 @@ def _():
         generate_waterfall_plot,
         plot_differential_classification_results,
         plot_v_plot,
+        plot_jaccard_index_plot,
     )
     from src.simulation import simulate_multiple_uncertainties
     return (
@@ -143,6 +144,7 @@ def _():
         np,
         pd,
         plot_differential_classification_results,
+        plot_jaccard_index_plot,
         plot_v_plot,
         plt,
         simulate_multiple_uncertainties,
@@ -873,6 +875,31 @@ def _(
         labels_dict=dict(zip(["NCI", "Intermediate", "AD"], "bgm")),
         figure_title=f"Differential classification for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %)\n"
         + f" (dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD)",
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(
+    ad_spec_high,
+    nci_spec_low,
+    plot_jaccard_index_plot,
+    res,
+    target_ad_specificity,
+    uncertainties,
+):
+    plot_jaccard_index_plot(
+        labels_dict_single_thres={"NCI": "b", "AD": "g"},
+        labels_dict_dual_thres={"NCI": "b", "Intermediate": "r", "AD": "g"},
+        gt_labels_single_thres=res.single_thres_gt_labels,
+        gt_labels_dual_thres=res.dual_thres_gt_labels,
+        pred_labels_dict_single_thres=res.single_thres_pred_labels,
+        pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
+        single_thres_plot_title=f"Single threshold, specificity: {target_ad_specificity:.2f} % AD",
+        dual_thres_plot_title=f"Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
+        figure_title="Jaccard index plot showing differential classification\n"
+        + f"for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %)"
+        + "(at least 10% simulated scores mismatch)",
     )
     return
 
