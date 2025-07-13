@@ -131,13 +131,9 @@ def _():
         plot_differential_classification_results,
         plot_v_plot,
     )
-    from src.simulation import (
-        MultiUncertaintyResults,
-        simulate_multiple_uncertainties,
-    )
+    from src.simulation import simulate_multiple_uncertainties
     return (
         GridSpec,
-        MultiUncertaintyResults,
         NumpyFloat32Array1D,
         antilogit_classifier_score,
         build_sensitivity_specificity_df,
@@ -795,7 +791,6 @@ def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
 
 @app.cell(hide_code=True)
 def _(
-    MultiUncertaintyResults,
     coefficients_1,
     dual_thres_high,
     dual_thres_low,
@@ -808,7 +803,7 @@ def _(
     single_thres,
     uncertainties,
 ):
-    res_1_diff_cls: MultiUncertaintyResults = simulate_multiple_uncertainties(
+    res_1_diff_cls = simulate_multiple_uncertainties(
         patients_df_2,
         sampler,
         uncertainties,
@@ -821,7 +816,7 @@ def _(
         seed=master_seed,
         num_workers=num_parallel_workers,
     )
-    res: MultiUncertaintyResults = simulate_multiple_uncertainties(
+    res = simulate_multiple_uncertainties(
         patients_df_2,
         sampler,
         uncertainties,
@@ -846,8 +841,8 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(
     plot_differential_classification_results,
-    res: "MultiUncertaintyResults",
-    res_1_diff_cls: "MultiUncertaintyResults",
+    res,
+    res_1_diff_cls,
     target_ad_specificity,
     uncertainties,
 ):
@@ -867,8 +862,8 @@ def _(
     ad_spec_high,
     nci_spec_low,
     plot_differential_classification_results,
-    res: "MultiUncertaintyResults",
-    res_1_diff_cls: "MultiUncertaintyResults",
+    res,
+    res_1_diff_cls,
     uncertainties,
 ):
     plot_differential_classification_results(
@@ -883,13 +878,7 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(
-    generate_waterfall_plot,
-    gt_probs,
-    res: "MultiUncertaintyResults",
-    single_thres,
-    uncertainties,
-):
+def _(generate_waterfall_plot, gt_probs, res, single_thres, uncertainties):
     uncertainty = max(uncertainties)
     generate_waterfall_plot(
         threshold=single_thres,
@@ -922,12 +911,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(
-    calculate_subject_wise_agreement,
-    n_samples,
-    res: "MultiUncertaintyResults",
-    uncertainties,
-):
+def _(calculate_subject_wise_agreement, n_samples, res, uncertainties):
     single_thres_subj_wise_agreement = calculate_subject_wise_agreement(
         gt_series_dict=res.single_thres_gt_series,
         pred_series_dict=res.single_thres_pred_series,
