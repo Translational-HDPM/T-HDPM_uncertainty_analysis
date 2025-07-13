@@ -109,7 +109,7 @@ def _():
     import sys
     from pathlib import Path
 
-    sys.path.insert(0, str(Path.cwd().parent.resolve()))
+    sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
     return Path, os
 
 
@@ -126,14 +126,14 @@ def _():
     from src.postprocessing import (
         build_sensitivity_specificity_df,
         calculate_sensitivity_specificity_and_predictive_values,
-        calculate_subject_wise_agreement, generate_waterfall_plot,
-        plot_differential_classification_results, plot_v_plot)
-    from src.simulation import (MultiUncertaintyResults,
-                                simulate_multiple_uncertainties)
-
+        calculate_subject_wise_agreement,
+        generate_waterfall_plot,
+        plot_differential_classification_results,
+        plot_v_plot,
+    )
+    from src.simulation import simulate_multiple_uncertainties
     return (
         GridSpec,
-        MultiUncertaintyResults,
         NumpyFloat32Array1D,
         antilogit_classifier_score,
         build_sensitivity_specificity_df,
@@ -224,7 +224,7 @@ def _(mo, patients_df_1):
         start=100,
         stop=10_000,
         step=100,
-        value=1000,
+        value=100,
         label="Number of Monte Carlo samples per TPM value",
         show_value=True,
     )
@@ -286,16 +286,27 @@ def _(mo, patients_df_2):
 
 @app.cell(hide_code=True)
 def _(Path, pd):
-    data_root = Path.cwd().parent.parent / "raw_data"
-    raw_data = pd.read_excel(
-        data_root / "ClusterMarkers_1819ADcohort.congregated_DR.xlsx", sheet_name=1
-    )
-    pathos = pd.read_excel(
-        data_root / "ClusterMarkers_1819ADcohort.congregated_DR.xlsx", sheet_name=0
-    )
-    pathos = pathos.set_index("Isolate ID")
-    raw_data = raw_data.set_index("gene_id")
-    return pathos, raw_data
+    raw_data, pathos = None, None
+    using_dummy_data = False  # Whether using a dummy dataset
+    data_root = Path(__file__).parent.parent.parent / "raw_data"
+    if data_root.exists():
+        raw_data = pd.read_excel(
+            data_root / "ClusterMarkers_1819ADcohort.congregated_DR.xlsx",
+            sheet_name=1,
+        )
+        pathos = pd.read_excel(
+            data_root / "ClusterMarkers_1819ADcohort.congregated_DR.xlsx",
+            sheet_name=0,
+        )
+        pathos = pathos.set_index("Isolate ID")
+        raw_data = raw_data.set_index("gene_id")
+    else:
+        # Use dummy data if actual dataset is not available
+        using_dummy_data = True
+        data_root = Path(__file__).parent.parent / "dummy_data"
+        raw_data = pd.read_csv(data_root / "tpm_expression_data.csv")
+        pathos = pd.read_csv(data_root / "disease_status_data.csv")
+    return pathos, raw_data, using_dummy_data
 
 
 @app.cell(hide_code=True)
@@ -454,7 +465,9 @@ def _(build_sensitivity_specificity_df, gt_probs, pathos_2):
 
 @app.cell(hide_code=True)
 def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
-    _fig, _ = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(18, 6))
+    _fig, _ = plt.subplots(
+        nrows=1, ncols=2, sharex=True, sharey=True, figsize=(18, 6)
+    )
     plt.subplot(121)
     sns.lineplot(
         data=ad_sens_spec_df,
@@ -495,8 +508,8 @@ def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
 
 
 @app.cell(hide_code=True)
-def _(ad_sens_spec_df, np):
-    _precision = 2
+def _(ad_sens_spec_df, np, using_dummy_data):
+    _precision = 0 if using_dummy_data else 2
     _rounded_sens = ad_sens_spec_df["sensitivity"].apply(
         lambda x: np.round(x, _precision)
     )
@@ -522,10 +535,12 @@ def _(
     pathos_2,
     single_thres,
 ):
-    ad_sens, ad_spec, _, _ = calculate_sensitivity_specificity_and_predictive_values(
-        pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-        gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
-        0,
+    ad_sens, ad_spec, _, _ = (
+        calculate_sensitivity_specificity_and_predictive_values(
+            pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
+            gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
+            0,
+        )
     )
     ad_spec = ad_spec * 100.0
     ad_sens = ad_sens * 100.0
@@ -719,7 +734,6 @@ def _(np):
         sqrt_sigma = a / (np.log2(tpm + 1) + b) + c
         scaled_pct_sd = scaling_factor * uncertainty_pct * sqrt_sigma**2.0
         return scaled_pct_sd / 100
-
     return (calculate_scaled_sd,)
 
 
@@ -772,13 +786,11 @@ def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
         rng = np.random.default_rng(seed)
         scaled_sd = calculate_scaled_sd(tpm, baseline_rsd * 100)
         return np.pow(2.0, rng.normal(np.log2(tpm + 1), scaled_sd, n_points))
-
     return (sampler,)
 
 
 @app.cell(hide_code=True)
 def _(
-    MultiUncertaintyResults,
     coefficients_1,
     dual_thres_high,
     dual_thres_low,
@@ -791,7 +803,7 @@ def _(
     single_thres,
     uncertainties,
 ):
-    res_1_diff_cls: MultiUncertaintyResults = simulate_multiple_uncertainties(
+    res_1_diff_cls = simulate_multiple_uncertainties(
         patients_df_2,
         sampler,
         uncertainties,
@@ -804,7 +816,7 @@ def _(
         seed=master_seed,
         num_workers=num_parallel_workers,
     )
-    res: MultiUncertaintyResults = simulate_multiple_uncertainties(
+    res = simulate_multiple_uncertainties(
         patients_df_2,
         sampler,
         uncertainties,
@@ -866,13 +878,7 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(
-    generate_waterfall_plot,
-    gt_probs,
-    res,
-    single_thres,
-    uncertainties,
-):
+def _(generate_waterfall_plot, gt_probs, res, single_thres, uncertainties):
     uncertainty = max(uncertainties)
     generate_waterfall_plot(
         threshold=single_thres,
@@ -905,12 +911,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(
-    calculate_subject_wise_agreement,
-    n_samples,
-    res,
-    uncertainties,
-):
+def _(calculate_subject_wise_agreement, n_samples, res, uncertainties):
     single_thres_subj_wise_agreement = calculate_subject_wise_agreement(
         gt_series_dict=res.single_thres_gt_series,
         pred_series_dict=res.single_thres_pred_series,
@@ -955,7 +956,9 @@ def _(
         False,
     )
     plt.xlim([0.0, 1.0])
-    plt.ylabel("Percent agreement between simulated and\n inferent scores for subjects")
+    plt.ylabel(
+        "Percent agreement between simulated and\n inferent scores for subjects"
+    )
     plt.gca().set_xticklabels([])
     fig.add_subplot(gs[1])
     plot_v_plot(
@@ -1063,7 +1066,6 @@ def _(mo):
 @app.cell(hide_code=True)
 def _():
     import marimo as mo
-
     return (mo,)
 
 

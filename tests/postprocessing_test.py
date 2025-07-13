@@ -8,10 +8,14 @@ import pandas as pd
 import pytest
 
 from src.postprocessing import (
-    build_sensitivity_specificity_df, calculate_jaccard_index,
+    build_sensitivity_specificity_df,
+    calculate_jaccard_index,
     calculate_sensitivity_specificity_and_predictive_values,
-    calculate_subject_wise_agreement, calculate_subject_wise_disagreement,
-    get_differential_classification, get_threshold)
+    calculate_subject_wise_agreement,
+    calculate_subject_wise_disagreement,
+    get_differential_classification,
+    get_threshold,
+)
 
 print(context.foo)  # To handle ruff unused imports error
 

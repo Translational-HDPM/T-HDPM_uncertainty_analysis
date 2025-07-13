@@ -12,9 +12,12 @@ import scipy.stats as st
 from joblib import Parallel, delayed
 
 from .dtypes import NumpyFloat32Array1D
-from .logreg_classifier import (antilogit_classifier_score,
-                                linear_classifier_score,
-                                linear_classifier_subscores, z_score)
+from .logreg_classifier import (
+    antilogit_classifier_score,
+    linear_classifier_score,
+    linear_classifier_subscores,
+    z_score,
+)
 
 warnings.filterwarnings("ignore")  # ignore all warnings
 
