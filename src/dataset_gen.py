@@ -37,8 +37,8 @@ def generate_tpm_data(
         A DataFrame with TPM values, where rows are genes
         and columns are patient samples.
     """
-    genes = [f"Gene {i+1}" for i in range(num_genes)]
-    patient_ids = [f"{i+1}" for i in range(num_patients)]
+    genes = [f"Gene {i + 1}" for i in range(num_genes)]
+    patient_ids = [f"{i + 1}" for i in range(num_patients)]
 
     columns = []
 
@@ -90,7 +90,7 @@ def generate_disease_status(num_patients: int = 250) -> pd.DataFrame:
         A DataFrame with patient IDs as the index and
         a single column for disease status.
     """
-    patient_ids = [f"{i+1}" for i in range(num_patients)]
+    patient_ids = [f"{i + 1}" for i in range(num_patients)]
 
     # Randomly assign "Diseased" or "Not diseased"
     status = np.random.choice(["AD", "NCI"], size=num_patients, p=[0.45, 0.55])

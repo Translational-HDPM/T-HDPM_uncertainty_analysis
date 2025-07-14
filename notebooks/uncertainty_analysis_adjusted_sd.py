@@ -403,7 +403,7 @@ def _(coefficients, mean_TPM, means, num_patients, patients_df_1):
 def _(mo, patients_df_1, patients_df_2):
     mo.callout(
         mo.md(
-            f"We dropped {patients_df_1.shape[0] - patients_df_2.shape[0]} out of {patients_df_1.shape[0]} genes, i.e. {(patients_df_1.shape[0] - patients_df_2.shape[0])/patients_df_1.shape[0] * 100.0:.2f}% of the genes."
+            f"We dropped {patients_df_1.shape[0] - patients_df_2.shape[0]} out of {patients_df_1.shape[0]} genes, i.e. {(patients_df_1.shape[0] - patients_df_2.shape[0]) / patients_df_1.shape[0] * 100.0:.2f}% of the genes."
         )
     )
     return
