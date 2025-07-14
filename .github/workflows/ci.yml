@@ -33,6 +33,7 @@ jobs:
         ruff check .
     - name: Check formatting with ruff
       run: |
+        echo $(ruff --version)
         ruff format --check .
     - name: Test with pytest
       run: |
