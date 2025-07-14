@@ -129,10 +129,11 @@ def _():
         calculate_subject_wise_agreement,
         generate_waterfall_plot,
         plot_differential_classification_results,
-        plot_v_plot,
         plot_jaccard_index_plot,
+        plot_v_plot,
     )
     from src.simulation import simulate_multiple_uncertainties
+
     return (
         GridSpec,
         NumpyFloat32Array1D,
@@ -467,9 +468,7 @@ def _(build_sensitivity_specificity_df, gt_probs, pathos_2):
 
 @app.cell(hide_code=True)
 def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
-    _fig, _ = plt.subplots(
-        nrows=1, ncols=2, sharex=True, sharey=True, figsize=(18, 6)
-    )
+    _fig, _ = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(18, 6))
     plt.subplot(121)
     sns.lineplot(
         data=ad_sens_spec_df,
@@ -537,12 +536,10 @@ def _(
     pathos_2,
     single_thres,
 ):
-    ad_sens, ad_spec, _, _ = (
-        calculate_sensitivity_specificity_and_predictive_values(
-            pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-            gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
-            0,
-        )
+    ad_sens, ad_spec, _, _ = calculate_sensitivity_specificity_and_predictive_values(
+        pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
+        gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
+        0,
     )
     ad_spec = ad_spec * 100.0
     ad_sens = ad_sens * 100.0
@@ -736,6 +733,7 @@ def _(np):
         sqrt_sigma = a / (np.log2(tpm + 1) + b) + c
         scaled_pct_sd = scaling_factor * uncertainty_pct * sqrt_sigma**2.0
         return scaled_pct_sd / 100
+
     return (calculate_scaled_sd,)
 
 
@@ -788,6 +786,7 @@ def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
         rng = np.random.default_rng(seed)
         scaled_sd = calculate_scaled_sd(tpm, baseline_rsd * 100)
         return np.pow(2.0, rng.normal(np.log2(tpm + 1), scaled_sd, n_points))
+
     return (sampler,)
 
 
@@ -983,9 +982,7 @@ def _(
         False,
     )
     plt.xlim([0.0, 1.0])
-    plt.ylabel(
-        "Percent agreement between simulated and\n inferent scores for subjects"
-    )
+    plt.ylabel("Percent agreement between simulated and\n inferent scores for subjects")
     plt.gca().set_xticklabels([])
     fig.add_subplot(gs[1])
     plot_v_plot(
@@ -1093,6 +1090,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _():
     import marimo as mo
+
     return (mo,)
 
 

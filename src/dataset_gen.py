@@ -5,10 +5,10 @@ Generates a synthetic dataset for demonstration in absence of the real dataset.
 import sys
 import warnings
 
-import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
+import pandas as pd
 from sklearn.linear_model import LogisticRegressionCV
+from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
 
