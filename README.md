@@ -36,9 +36,10 @@ In this project, we start from an existing logistic regression model (trained to
 
 The notebooks assume you have access to the original cell-free mRNA expression data. If you do not, to get an idea of the general workflow please use the CSV files in the `dummy_data` folder.
 
-> **Note:** 1. The raw data is not included in this repository.
-> **Note:** 2. The `dummy_data` files can be generated using the script `dataset_gen.py` inside `src`.
-> **Note:** 3. Not all notebooks have been configured to use the dummy data. Please edit the notebooks as necessary if you wish to use the dummy data with them.
+> **Note:**
+> 1. The raw data is not included in this repository.
+> 2. The `dummy_data` files can be generated using the script `dataset_gen.py` inside `src`.
+> 3. Not all notebooks have been configured to use the dummy data. Please edit the notebooks as necessary if you wish to use the dummy data with them.
 
 ### Code Dependencies
 
@@ -88,7 +89,8 @@ jupyter notebook
 
 4. **(Optional) Check out the `marimo` Versions of the Notebooks**
 
-> **Note:** Only one notebook has its `marimo` version for now. Other `marimo` notebooks are under development.
+> **Note:**
+> Only one notebook has its `marimo` version for now. Other `marimo` notebooks are under development.
 
 Launch Marimo in this directory:
 
