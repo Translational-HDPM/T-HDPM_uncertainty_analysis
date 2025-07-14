@@ -34,27 +34,28 @@ In this project, we start from an existing logistic regression model (trained to
 
 ### Data
 
-The notebooks assume you have access to the original cell-free mRNA expression data.
+The notebooks assume you have access to the original cell-free mRNA expression data. If you do not, to get an idea of the general workflow please use the CSV files in the `dummy_data` folder.
 
-> **Note:** The raw data is not included in this repository.
+> **Note:** 1. The raw data is not included in this repository.
+> **Note:** 2. The `dummy_data` files can be generated using the script `dataset_gen.py` inside `src`.
+> **Note:** 3. Not all notebooks have been configured to use the dummy data. Please edit the notebooks as necessary if you wish to use the dummy data with them.
 
 ### Code Dependencies
 
 To run the notebook without modification, you’ll need at least the following Python packages:
 
-- `python` ≥ 3.7  
+- `python` ≥ 3.12  
 - `pandas`  
 - `numpy`  
 - `matplotlib`  
 - `seaborn`
+- `scikit-learn`
 
-Below is a quick checklist of Python libraries:
-
-```bash
-pip install pandas numpy matplotlib seaborn
-```
+Additional dependencies can be found within the `requirements.txt` file at the root level.
 
 ## Usage
+
+### Notebooks
 
 1. **Clone (or Download) This Repository**
 
@@ -68,10 +69,10 @@ cd T-HDPM_uncertainty_analysis
 If you’re using a virtual environment, activate it first. Then run:
 
 ```bash
-pip install pandas numpy matplotlib seaborn jupyter notebook lab
+pip install -r requirements.txt
 ```
 
-3. **Open the Notebook with Jupyter or JupyterLab**
+3. **Open the Notebooks with Jupyter or JupyterLab**
 
 Launch Jupyter or JupyterLab in this directory:
 
@@ -84,6 +85,41 @@ or
 ```bash
 jupyter notebook
 ```
+
+4. **(Optional) Check out the `marimo` Versions of the Notebooks**
+
+> **Note:** Only one notebook has its `marimo` version for now. Other `marimo` notebooks are under development.
+
+Launch Marimo in this directory:
+
+```bash
+marimo edit
+```
+
+### Docker application
+
+1. **Ensure you have all Prerequisites**
+
+Install [Docker](https://www.docker.com/products/docker-desktop/) and clone the repository.
+
+2. **Build the Docker Image**
+
+Open a terminal application, navigate to the repository directory and from within the directory run.
+
+```bash
+docker build -t uncertaintyanalysisapp .
+```
+
+3. **Run the Dockerized Application**
+
+The Docker application will run the `uncertainty_analysis_adjusted_sd.py` marimo notebook on port 2025 which can be accessed on any browser. You will need to map port 2025 to a port of your choice.
+
+TLDR; run 
+```bash
+docker run --rm -p 2025:2025 uncertaintyanalysisapp
+```
+
+Then on any browser, navigate to http://localhost:2025 to view the interactive Marimo notebook app!
 
 ## References
 
