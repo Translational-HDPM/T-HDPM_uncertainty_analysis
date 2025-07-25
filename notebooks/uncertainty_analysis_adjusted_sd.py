@@ -67,7 +67,9 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""Monte Carlo techniques are recommended by FDA to estimate diagnostic uncertainty of multi-dimensional classifiers. Overall uncertainty of high dimensional classifiers can be determined or estimated. Besides noted variation, sample site, operator and instrument variation need to be considered.""")
+    mo.md(
+        r"""Monte Carlo techniques are recommended by FDA to estimate diagnostic uncertainty of multi-dimensional classifiers. Overall uncertainty of high dimensional classifiers can be determined or estimated. Besides noted variation, sample site, operator and instrument variation need to be considered."""
+    )
     return
 
 
@@ -131,6 +133,7 @@ def _():
         plot_v_plot,
     )
     from src.simulation import simulate_multiple_uncertainties
+
     return (
         GridSpec,
         NumpyFloat32Array1D,
@@ -340,7 +343,9 @@ def _(np, raw_data):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""The raw dataset contains technical replicates for some subjects. We average the technical replicates to reduce them to a single data point.""")
+    mo.md(
+        r"""The raw dataset contains technical replicates for some subjects. We average the technical replicates to reduce them to a single data point."""
+    )
     return
 
 
@@ -374,7 +379,9 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    mo.md(r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used.""")
+    mo.md(
+        r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used."""
+    )
     return
 
 
@@ -404,7 +411,9 @@ def _(mo, patients_df_1, patients_df_2):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Selecting the Probability threshold based on Sensitivity and Specificity""")
+    mo.md(
+        r"""### Selecting the Probability threshold based on Sensitivity and Specificity"""
+    )
     return
 
 
@@ -459,9 +468,7 @@ def _(build_sensitivity_specificity_df, gt_probs, pathos_2):
 
 @app.cell
 def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
-    _fig, _ = plt.subplots(
-        nrows=1, ncols=2, sharex=True, sharey=True, figsize=(18, 6)
-    )
+    _fig, _ = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(18, 6))
     plt.subplot(121)
     sns.lineplot(
         data=ad_sens_spec_df,
@@ -529,12 +536,10 @@ def _(
     pathos_2,
     single_thres,
 ):
-    ad_sens, ad_spec, _, _ = (
-        calculate_sensitivity_specificity_and_predictive_values(
-            pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-            gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
-            0,
-        )
+    ad_sens, ad_spec, _, _ = calculate_sensitivity_specificity_and_predictive_values(
+        pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
+        gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
+        0,
     )
     ad_spec = ad_spec * 100.0
     ad_sens = ad_sens * 100.0
@@ -548,7 +553,9 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo, single_thres):
-    mo.md(rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. However, if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold and upper thresholds farther apart from each other, but in the vicinity of the calculated value of the dichotomous decision threshold ({single_thres:.4f}).""")
+    mo.md(
+        rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. However, if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold and upper thresholds farther apart from each other, but in the vicinity of the calculated value of the dichotomous decision threshold ({single_thres:.4f})."""
+    )
     return
 
 
@@ -620,19 +627,25 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values.""")
+    mo.md(
+        r"""We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values."""
+    )
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""In general, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation) we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$.""")
+    mo.md(
+        r"""In general, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation) we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$."""
+    )
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf)).""")
+    mo.md(
+        r"""However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf))."""
+    )
     return
 
 
@@ -720,6 +733,7 @@ def _(np):
         sqrt_sigma = a / (np.log2(tpm + 1) + b) + c
         scaled_pct_sd = scaling_factor * uncertainty_pct * sqrt_sigma**2.0
         return scaled_pct_sd / 100
+
     return (calculate_scaled_sd,)
 
 
@@ -772,6 +786,7 @@ def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
         rng = np.random.default_rng(seed)
         scaled_sd = calculate_scaled_sd(tpm, baseline_rsd * 100)
         return np.pow(2.0, rng.normal(np.log2(tpm + 1), scaled_sd, n_points))
+
     return (sampler,)
 
 
@@ -967,9 +982,7 @@ def _(
         False,
     )
     plt.xlim([0.0, 1.0])
-    plt.ylabel(
-        "Percent agreement between simulated and\n inferent scores for subjects"
-    )
+    plt.ylabel("Percent agreement between simulated and\n inferent scores for subjects")
     plt.gca().set_xticklabels([])
     fig.add_subplot(gs[1])
     plot_v_plot(
@@ -1077,6 +1090,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _():
     import marimo as mo
+
     return (mo,)
 
 
