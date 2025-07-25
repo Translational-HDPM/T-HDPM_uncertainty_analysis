@@ -1052,6 +1052,43 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo):
+    mo.md(r"""### Histogram of Simulated Scores""")
+    return
+
+
+@app.cell(hide_code=True)
+def _(gt_probs, plt, res, sns):
+    _uncert = 35
+    _pred_probs = res.pred_prob_arrs[_uncert]
+    sns.histplot(
+        _pred_probs,
+        color="b",
+        alpha=0.3,
+        fill=True,
+        bins=30,
+        stat="density",
+        label="Simulated subjects",
+    )
+    sns.histplot(
+        gt_probs.values,
+        color="r",
+        alpha=0.3,
+        fill=True,
+        bins=30,
+        stat="density",
+        label="Real subjects",
+    )
+    plt.xlabel("Classifier score (probability)")
+    plt.ylabel("Density")
+    plt.legend()
+    plt.title(
+        f"Histogram of probability scores from \nsimulated and real subjects at {_uncert}% simulated uncertainty."
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
     mo.md(
         r"""
     ### Preliminary observations
