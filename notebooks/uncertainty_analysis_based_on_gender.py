@@ -8,7 +8,7 @@ app = marimo.App()
 def _(mo):
     mo.md(
         r"""
-    ## Modeling of Measurement Uncertainty of a high-dimensional RNA-Seq classifier of cell-free mRNA for Alzheimer’s Disease
+    ## Modeling of Measurement Uncertainty of a high-dimensional RNA-Seq classifier of cell-free mRNA for Alzheimer’s Disease: Effect of Gender on Differential classification
 
 
     ### Author: Deb Debnath
@@ -67,7 +67,9 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""Monte Carlo techniques are recommended by FDA to estimate diagnostic uncertainty of multi-dimensional classifiers. Overall uncertainty of high dimensional classifiers can be determined or estimated. Besides noted variation, sample site, operator and instrument variation need to be considered.""")
+    mo.md(
+        r"""Monte Carlo techniques are recommended by FDA to estimate diagnostic uncertainty of multi-dimensional classifiers. Overall uncertainty of high dimensional classifiers can be determined or estimated. Besides noted variation, sample site, operator and instrument variation need to be considered."""
+    )
     return
 
 
@@ -95,7 +97,7 @@ def _(mo):
         r"""
     The machine learning model, a logistic regression with L2 regularization, was trained using the expression levels (transcripts per million) of these 1658 selected genes from the University of Kentucky training cohort (24 NCI, 66 AD). L2 regularization was specifically employed to prevent overfitting. Metaparameters for this model were optimized using a 15-fold cross-validation strategy on the training cohort. 
 
-    The classifier's ability to discriminate between AD patients and NCI controls was then rigorously evaluated on an independent test set. This test set consisted of the remaining 60 AD patients and 92 NCI controls, derived from four independent sources distinct from the training data (UC San Diego, University of Washington, Indiana University, BioIVT). In this independent validation, the classifier achieved an Area Under the Receiver Operating Characteristic curve (AUC) of 0.83. Further analysis revealed that the genes included in the classifier were enriched in biological pathways known to be associated with AD pathogenesis, including immune response and cellular metabolic processes, thereby lending biological plausibility to the statistical findings
+    The classifier's ability to discriminate between AD patients and NCI controls was then rigorously evaluated on an independent test set. This test set consisted of the remaining 60 AD patients and 92 NCI controls, derived from four independent sources distinct from the training data (UC San Diego, University of Washington, Indiana University, BioIVT). In this independent validation, the classifier achieved an Area Under the Receiver Operating Characteristic curve (AUC) of 0.83. Further analysis revealed that the genes included in the classifier were enriched in biological pathways known to be associated with AD pathogenesis, including immune response and cellular metabolic processes, thereby lending biological plausibility to the statistical findings.
     """
     )
     return
@@ -103,12 +105,12 @@ def _(mo):
 
 @app.cell
 def _():
-    import os
     import sys
+    from itertools import product
     from pathlib import Path
 
     sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
-    return Path, os
+    return Path, product
 
 
 @app.cell
@@ -117,33 +119,29 @@ def _():
     import numpy as np
     import pandas as pd
     import seaborn as sns
-    from matplotlib.gridspec import GridSpec
 
     from src.dtypes import NumpyFloat32Array1D
     from src.logreg_classifier import antilogit_classifier_score
     from src.postprocessing import (
         build_sensitivity_specificity_df,
         calculate_sensitivity_specificity_and_predictive_values,
-        calculate_subject_wise_agreement,
         generate_waterfall_plot,
         plot_differential_classification_results,
         plot_jaccard_index_plot,
-        plot_v_plot,
     )
-    from src.simulation import simulate_multiple_uncertainties
+    from src.simulation import (
+        simulate_multiple_uncertainties,
+    )
     return (
-        GridSpec,
         NumpyFloat32Array1D,
         antilogit_classifier_score,
         build_sensitivity_specificity_df,
         calculate_sensitivity_specificity_and_predictive_values,
-        calculate_subject_wise_agreement,
         generate_waterfall_plot,
         np,
         pd,
         plot_differential_classification_results,
         plot_jaccard_index_plot,
-        plot_v_plot,
         plt,
         simulate_multiple_uncertainties,
         sns,
@@ -152,11 +150,110 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Setting parameters""")
+    mo.md(r"""### The Dataset""")
     return
 
 
 @app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    The `raw_data` dataframe contains the TPM values for {patients_df_2.shape[1]} subjects (including technical replicates), along with the coefficients of the classifier. The `pathos` dataframe contains the original categories that the patients belong to.
+
+
+    For convenience we set the indexes of the dataframes to the patient IDs. We also ensure that between `pathos` and `raw_data` there are no null values and no missing patients (subjects).
+    """
+    )
+    return
+
+
+@app.cell
+def _(Path, pd):
+    data_root = Path(__file__).parent.parent.parent / "raw_data"
+    raw_data = pd.read_excel(
+        data_root / "ClusterMarkers_1819ADcohort.congregated_DR.xlsx", sheet_name=1
+    )
+    pathos = pd.read_excel(
+        data_root / "Purdue expanded info AD subject sample added Info Apoe.xlsx"
+    )
+    pathos = pathos.set_index("Isolate ID")
+    raw_data = raw_data.set_index("gene_id")
+    return pathos, raw_data
+
+
+@app.cell
+def _(raw_data):
+    raw_data.head()
+    return
+
+
+@app.cell
+def _(pathos):
+    pathos.head()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""For convenience we set the index to the specified columns.""")
+    return
+
+
+@app.cell
+def _(pathos):
+    pathos_1 = pathos.dropna(subset=["Disease"])
+    pathos_1 = pathos_1.loc[pathos_1.index.dropna(), :]
+    pathos_1.index = pathos_1.index.astype(int).astype(str)
+    return (pathos_1,)
+
+
+@app.cell
+def _(np, raw_data):
+    patients_df = raw_data[~raw_data.loc[:, "Coeff"].isnull()]
+    coefficients = np.nan_to_num(np.array(patients_df.loc[:, "Coeff"]))
+    patients_df = patients_df.filter(regex="^\\d+")
+    genes = patients_df.index.values
+    return coefficients, genes, patients_df
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""The raw dataset contains technical replicates for some subjects. We average the technical replicates to reduce them to a single data point."""
+    )
+    return
+
+
+@app.cell
+def _(genes, pathos_1, patients_df):
+    grouped_cols = patients_df.columns.str.split("-").str[0]
+    grouped = patients_df.groupby(grouped_cols, axis=1)
+    patients_df_1 = grouped.apply(lambda x: x.mean(axis=1)).reset_index(drop=True)
+    patients_df_1.index = genes
+
+    _patients_df_cols_not_in_pathos = []
+    for _col in patients_df_1.columns:
+        if _col not in pathos_1.index:
+            _patients_df_cols_not_in_pathos.append(_col)
+
+    pathos_2 = pathos_1
+    for _col in pathos_1.index:
+        if _col not in patients_df_1.columns:
+            pathos_2 = pathos_1.drop(_col)
+
+    for _col in _patients_df_cols_not_in_pathos:
+        pathos_2.loc[_col, "Disease"] = "NCI"
+    patients_df_1 = patients_df_1.loc[:, pathos_2.index]
+    return pathos_2, patients_df_1
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""### Setting parameters""")
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(
         r"""
@@ -172,40 +269,10 @@ def _(mo):
 
 
 @app.cell
-def _(os):
-    master_seed = 123  # Random number seed
-    num_parallel_workers = (
-        os.cpu_count()
-        # Number of parallel jobs to run for simulation
-    )
+def _():
+    master_seed = 321  # Random number seed
+    num_parallel_workers = 8  # Number of parallel jobs to run for simulation
     return master_seed, num_parallel_workers
-
-
-@app.cell
-def _(
-    mean_tpm_slider,
-    n_samples_slider,
-    num_patients_slider,
-    uncertainty_range_slider,
-):
-    n_samples = (
-        n_samples_slider.value
-    )  # Number of Monte Carlo samples to simulate for each subject
-    uncertainties = list(
-        range(
-            uncertainty_range_slider.value[0],
-            uncertainty_range_slider.value[1] + 5,
-            5,
-        )
-    )  # Maximum percentage of noise/uncertainty to simulate. (aka coefficient of variation)
-    mean_TPM = (
-        mean_tpm_slider.value
-    )  # When we filter genes for analysis with a reduced feature set,
-    # we drop genes for which the mean TPM is below this cutoff
-    num_patients = (
-        num_patients_slider.value
-    )  # Total number of samples/subjects/patients
-    return mean_TPM, n_samples, num_patients, uncertainties
 
 
 @app.cell
@@ -244,7 +311,7 @@ def _(mo, patients_df_1):
     )
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(
     mean_tpm_slider,
     mo,
@@ -265,105 +332,31 @@ def _(
     return
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""### The Dataset""")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo, patients_df_2):
-    mo.md(
-        rf"""
-    The `raw_data` dataframe contains the TPM values for {patients_df_2.shape[1]} subjects (including technical replicates), along with the coefficients of the classifier. The `pathos` dataframe contains the original categories that the patients belong to.
-
-
-    For convenience we set the indexes of the dataframes to the patient IDs. We also ensure that between `pathos` and `raw_data` there are no null values and no missing patients (subjects).
-    """
-    )
-    return
-
-
 @app.cell
-def _(Path, pd):
-    raw_data, pathos = None, None
-    using_dummy_data = False  # Whether using a dummy dataset
-    data_root = Path(__file__).parent.parent.parent / "raw_data"
-    if data_root.exists():
-        raw_data = pd.read_excel(
-            data_root / "ClusterMarkers_1819ADcohort.congregated_DR.xlsx",
-            sheet_name=1,
+def _(
+    mean_tpm_slider,
+    n_samples_slider,
+    num_patients_slider,
+    uncertainty_range_slider,
+):
+    n_samples = (
+        n_samples_slider.value
+    )  # Number of Monte Carlo samples to simulate for each subject
+    uncertainties = list(
+        range(
+            uncertainty_range_slider.value[0],
+            uncertainty_range_slider.value[1] + 5,
+            5,
         )
-        pathos = pd.read_excel(
-            data_root / "ClusterMarkers_1819ADcohort.congregated_DR.xlsx",
-            sheet_name=0,
-        )
-        pathos = pathos.set_index("Isolate ID")
-        raw_data = raw_data.set_index("gene_id")
-    else:
-        # Use dummy data if actual dataset is not available
-        using_dummy_data = True
-        data_root = Path(__file__).parent.parent / "dummy_data"
-        raw_data = pd.read_csv(data_root / "tpm_expression_data.csv")
-        pathos = pd.read_csv(data_root / "disease_status_data.csv")
-    return pathos, raw_data, using_dummy_data
-
-
-@app.cell
-def _(raw_data):
-    raw_data.head()
-    return
-
-
-@app.cell
-def _(pathos):
-    pathos.head()
-    return
-
-
-@app.cell
-def _(pathos):
-    pathos_1 = pathos.dropna()
-    pathos_1 = pathos_1.loc[pathos_1.index.dropna(), :]
-    pathos_1.index = pathos_1.index.astype(int).astype(str)
-    return (pathos_1,)
-
-
-@app.cell
-def _(np, raw_data):
-    patients_df = raw_data[~raw_data.loc[:, "Coeff"].isnull()]
-    coefficients = np.nan_to_num(np.array(patients_df.loc[:, "Coeff"]))
-    patients_df = patients_df.filter(regex="^\\d+")
-    genes = patients_df.index.values
-    return coefficients, genes, patients_df
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""The raw dataset contains technical replicates for some subjects. We average the technical replicates to reduce them to a single data point.""")
-    return
-
-
-@app.cell
-def _(genes, pathos_1, patients_df):
-    grouped_cols = patients_df.columns.str.split("-").str[0]
-    grouped = patients_df.groupby(grouped_cols, axis=1)
-    patients_df_1 = grouped.apply(lambda x: x.mean(axis=1)).reset_index(drop=True)
-    patients_df_1.index = genes
-
-    _patients_df_cols_not_in_pathos = []
-    for _col in patients_df_1.columns:
-        if _col not in pathos_1.index:
-            _patients_df_cols_not_in_pathos.append(_col)
-
-    for _col in pathos_1.index:
-        if _col not in patients_df_1.columns:
-            pathos_2 = pathos_1.drop(_col)
-
-    for _col in _patients_df_cols_not_in_pathos:
-        pathos_2.loc[_col] = "NCI"
-    patients_df_1 = patients_df_1.loc[:, pathos_2.index]
-    return pathos_2, patients_df_1
+    )  # Maximum percentage of noise/uncertainty to simulate. (aka coefficient of variation)
+    mean_TPM = (
+        mean_tpm_slider.value
+    )  # When we filter genes for analysis with a reduced feature set,
+    # we drop genes for which the mean TPM is below this cutoff
+    num_patients = (
+        num_patients_slider.value
+    )  # Total number of samples/subjects/patients
+    return mean_TPM, n_samples, num_patients, uncertainties
 
 
 @app.cell(hide_code=True)
@@ -372,9 +365,11 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used.""")
+    mo.md(
+        r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used."""
+    )
     return
 
 
@@ -392,7 +387,7 @@ def _(coefficients, mean_TPM, means, num_patients, patients_df_1):
     return coefficients_1, patients_df_2
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(mo, patients_df_1, patients_df_2):
     mo.callout(
         mo.md(
@@ -404,7 +399,9 @@ def _(mo, patients_df_1, patients_df_2):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Selecting the Probability threshold based on Sensitivity and Specificity""")
+    mo.md(
+        r"""### Selecting the Probability threshold based on Sensitivity and Specificity"""
+    )
     return
 
 
@@ -502,8 +499,8 @@ def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
 
 
 @app.cell
-def _(ad_sens_spec_df, np, using_dummy_data):
-    _precision = 0 if using_dummy_data else 2
+def _(ad_sens_spec_df, np):
+    _precision = 2
     _rounded_sens = ad_sens_spec_df["sensitivity"].apply(
         lambda x: np.round(x, _precision)
     )
@@ -548,7 +545,9 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo, single_thres):
-    mo.md(rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. However, if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold and upper thresholds farther apart from each other, but in the vicinity of the calculated value of the dichotomous decision threshold ({single_thres:.4f}).""")
+    mo.md(
+        rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. However, if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold and upper thresholds farther apart from each other, but in the vicinity of the calculated value of the dichotomous decision threshold ({single_thres:.4f})."""
+    )
     return
 
 
@@ -568,8 +567,9 @@ def _(mo):
 
 @app.cell
 def _(single_thres, threshold_step_slider):
-    dual_thres_low = max(0.01, single_thres - threshold_step_slider.value)
-    dual_thres_high = min(1.0, single_thres + threshold_step_slider.value)
+    threshold_step = threshold_step_slider.value
+    dual_thres_low = max(0.01, single_thres - threshold_step)
+    dual_thres_high = min(1.0, single_thres + threshold_step)
     return dual_thres_high, dual_thres_low
 
 
@@ -620,19 +620,25 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values.""")
+    mo.md(
+        r"""We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values."""
+    )
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""In general, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation) we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$.""")
+    mo.md(
+        r"""In general, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation) we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$."""
+    )
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf)).""")
+    mo.md(
+        r"""However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf))."""
+    )
     return
 
 
@@ -825,19 +831,156 @@ def _(mo):
 
 
 @app.cell
+def _(np, pd, product):
+    def get_gender_and_diagnosis_patient_ids(
+        pathos_df: pd.DataFrame,
+        pred_labels: pd.Series,
+        gender: str,
+        diagnosis: int,
+    ) -> list[int]:
+        """
+        Filters patient IDs based on a specific gender and predicted diagnosis, by
+        finding the intersection of two groups of patients: those of a specified
+        gender and those with a specific predicted diagnosis. The patient IDs are
+        sourced from the index of the provided DataFrames/Series.
+
+        Parameters
+        ----------
+        pathos_df
+            A DataFrame containing patient demographic information, including a
+            'Gender' column. The index must correspond to patient IDs.
+        pred_labels
+            A Series containing the predicted diagnosis labels for each patient.
+            The index must be the patient ID, and values are the diagnosis codes (int).
+        gender
+            The gender to filter by.
+        diagnosis
+            The diagnosis code to filter by.
+
+        Returns
+        -------
+        list[int]
+            A list of patient IDs that match both the specified gender and diagnosis.
+        """
+        gender_patient_ids = set(pathos_df[pathos_df["Gender"] == gender].index)
+        diagnosis_patient_ids = set(pred_labels[pred_labels == diagnosis].index)
+        return gender_patient_ids.intersection(diagnosis_patient_ids)
+
+
+    def get_gender_pred_labels(
+        pred_labels: pd.Series,
+        pathos_df: pd.DataFrame,
+    ) -> pd.Series:
+        """
+        Remaps diagnosis labels into combined gender-diagnosis categories, by
+        transforming a Series of diagnosis predictions into a new set of categorical
+        labels. Each new label represents a unique combination of gender ('Male' or
+        'Female') and the original diagnosis code. The mapping is created by
+        enumerating the Cartesian product of genders and unique diagnoses.
+
+        Parameters
+        ----------
+        pred_labels
+            A Series containing the predicted diagnosis labels for each patient.
+            The index must be the patient ID.
+        pathos_df
+            A DataFrame containing patient demographic data, indexed by patient ID,
+            with at least a 'Gender' column.
+
+        Returns
+        -------
+        pd.Series
+            A new Series of the same size as `pred_labels`, where the original
+            diagnosis codes have been replaced by the new integer labels that
+            encode both gender and diagnosis.
+
+        See Also
+        --------
+        get_gender_and_diagnosis_patient_ids : Used to find patients for each
+                                               gender-diagnosis pair.
+
+        """
+        gender_pred_labels = pred_labels.copy(deep=True)
+        for i, item in enumerate(
+            product(["Male", "Female"], np.sort(pred_labels.unique()))
+        ):
+            gender_pred_labels.loc[
+                list(
+                    get_gender_and_diagnosis_patient_ids(
+                        pathos_df, pred_labels, item[0], item[1]
+                    )
+                )
+            ] = i
+        return gender_pred_labels
+
+
+    def build_gender_pred_labels_dict(
+        pred_labels_dict: dict[int, pd.Series], pathos_df: pd.DataFrame
+    ) -> dict[int, pd.Series]:
+        """
+        Transforms predicted labels into gender-specific labels for multiple
+        uncertainty levels, by iterating through a dictionary of prediction sets.
+        Each set, corresponding to an uncertainty level, is passed to
+        `get_gender_pred_labels` to convert its diagnosis labels into combined
+        gender-diagnosis categories.
+
+        Parameters
+        ----------
+        pred_labels_dict
+            A dictionary where keys are uncertainty levels (int) and values are
+            pandas Series of predicted diagnosis labels for that level.
+        pathos_df
+            A reference DataFrame with patient demographic data, including 'Gender',
+            indexed by patient ID.
+
+        Returns
+        -------
+        dict[int, pd.Series]
+            A new dictionary with the same uncertainty keys, where each value is a
+            Series of the newly created gender-diagnosis labels.
+
+        See Also
+        --------
+        get_gender_pred_labels : The function applied to each prediction Series.
+        """
+        gender_pred_labels_dict = {}
+        for uncert in pred_labels_dict:
+            gender_pred_labels_dict[uncert] = get_gender_pred_labels(
+                pred_labels_dict[uncert], pathos_df
+            )
+        return gender_pred_labels_dict
+    return build_gender_pred_labels_dict, get_gender_pred_labels
+
+
+@app.cell
 def _(
+    build_gender_pred_labels_dict,
+    get_gender_pred_labels,
+    pathos_2,
     plot_differential_classification_results,
+    product,
     res,
     res_1_diff_cls,
     target_ad_specificity,
-    uncertainties,
 ):
     plot_differential_classification_results(
-        gt_labels=res.single_thres_gt_labels,
-        one_sim_mismatch_pred_labels_dict=res_1_diff_cls.single_thres_pred_labels,
-        ten_pct_sim_mismatch_pred_labels_dict=res.single_thres_pred_labels,
-        labels_dict=dict(zip(["NCI", "AD"], "bg")),
-        figure_title=f"Differential classification for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)}%)\n"
+        gt_labels=get_gender_pred_labels(res.single_thres_gt_labels, pathos_2),
+        one_sim_mismatch_pred_labels_dict=build_gender_pred_labels_dict(
+            res_1_diff_cls.single_thres_pred_labels, pathos_2
+        ),
+        ten_pct_sim_mismatch_pred_labels_dict=build_gender_pred_labels_dict(
+            res.single_thres_pred_labels, pathos_2
+        ),
+        labels_dict=dict(
+            zip(
+                map(
+                    lambda x: f"{x[0]}, {x[1]}",
+                    product(["Male", "Female"], ["NCI", "AD"]),
+                ),
+                "bgmk",
+            )
+        ),
+        figure_title="Differential classification based on gender for levels of uncertainty (5-35%)\n"
         + f" (single threshold, specificity: {target_ad_specificity:.2f} % AD)",
     )
     return
@@ -846,19 +989,34 @@ def _(
 @app.cell
 def _(
     ad_spec_high,
+    build_gender_pred_labels_dict,
+    get_gender_pred_labels,
     nci_spec_low,
+    pathos_2,
     plot_differential_classification_results,
+    product,
     res,
     res_1_diff_cls,
-    uncertainties,
 ):
     plot_differential_classification_results(
-        gt_labels=res.dual_thres_gt_labels,
-        one_sim_mismatch_pred_labels_dict=res_1_diff_cls.dual_thres_pred_labels,
-        ten_pct_sim_mismatch_pred_labels_dict=res.dual_thres_pred_labels,
-        labels_dict=dict(zip(["NCI", "Intermediate", "AD"], "bgm")),
-        figure_title=f"Differential classification for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %)\n"
-        + f" (dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD)",
+        gt_labels=get_gender_pred_labels(res.dual_thres_gt_labels, pathos_2),
+        one_sim_mismatch_pred_labels_dict=build_gender_pred_labels_dict(
+            res_1_diff_cls.dual_thres_pred_labels, pathos_2
+        ),
+        ten_pct_sim_mismatch_pred_labels_dict=build_gender_pred_labels_dict(
+            res.dual_thres_pred_labels, pathos_2
+        ),
+        labels_dict=dict(
+            zip(
+                map(
+                    lambda x: f"{x[0]}, {x[1]}",
+                    product(["Male", "Female"], ["NCI", "Intermediate", "AD"]),
+                ),
+                "bgmkrc",
+            )
+        ),
+        figure_title="Differential classification for levels of uncertainty (5-35%)\n"
+        + f" (dual threshold, specificity: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD)",
     )
     return
 
@@ -870,7 +1028,6 @@ def _(
     plot_jaccard_index_plot,
     res,
     target_ad_specificity,
-    uncertainties,
 ):
     plot_jaccard_index_plot(
         labels_dict_single_thres={"NCI": "b", "AD": "g"},
@@ -879,177 +1036,112 @@ def _(
         gt_labels_dual_thres=res.dual_thres_gt_labels,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
         pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
-        single_thres_plot_title=f"Single threshold, specificity: {target_ad_specificity:.2f} % AD",
-        dual_thres_plot_title=f"Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
-        figure_title="Jaccard index plot showing differential classification\n"
-        + f"for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %)"
-        + "(at least 10% simulated scores mismatch)",
+        single_thres_plot_title=f"Single threshold, specificity: {target_ad_specificity:.2f}% AD",
+        dual_thres_plot_title=f"Dual threshold, specificity: {nci_spec_low:.2f}% NCI, {ad_spec_high:.2f}% AD",
+        figure_title="Jaccard index plot showing differential classification\n(at least 10% simulated scores mismatch)",
     )
     return
-
-
-@app.cell
-def _(generate_waterfall_plot, gt_probs, res, single_thres, uncertainties):
-    uncertainty = max(uncertainties)
-    generate_waterfall_plot(
-        threshold=single_thres,
-        probs=gt_probs,
-        color_labels_data=res.single_thres_pred_labels[uncertainty],
-        labels={0: "NCI", 1: "AD"},
-        colors=["#123456", "#fedabc"],
-        title=f"Waterfall plot showing simulated and inferent scores\n at {uncertainty}% simulated uncertainty",
-        legend_title="Simulated score\n   predictions",
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""### Visualizing agreement between simulated and inferent scores""")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    We calculate the classification agreement between methods in each part of the spectrum of disease severity using the **V-plot method** ([Petraco et al (2018)](https://openheart.bmj.com/content/openhrt/5/1/e000663.full.pdf)). 
-
-    The V-plot has this shape because the accuracy of tests is universally high at the extremes of disease severity (near 100%) but close to the classification cut-off agreement plunges. The width of the mouth of the V can be used as a general measure of a test’s performance: the wider the V, the poorer the test ability to match a reference modality. Classification agreement between two methods of measurement is called diagnostic accuracy if one test is considered the reference gold standard.
-    """
-    )
-    return
-
-
-@app.cell
-def _(calculate_subject_wise_agreement, n_samples, res, uncertainties):
-    single_thres_subj_wise_agreement = calculate_subject_wise_agreement(
-        gt_series_dict=res.single_thres_gt_series,
-        pred_series_dict=res.single_thres_pred_series,
-        uncertainties=uncertainties,
-        n_samples=n_samples,
-    )
-    dual_thres_subj_wise_agreement = calculate_subject_wise_agreement(
-        gt_series_dict=res.dual_thres_gt_series,
-        pred_series_dict=res.dual_thres_pred_series,
-        uncertainties=uncertainties,
-        n_samples=n_samples,
-    )
-    return dual_thres_subj_wise_agreement, single_thres_subj_wise_agreement
 
 
 @app.cell
 def _(
-    GridSpec,
     ad_spec_high,
-    dual_thres_subj_wise_agreement,
-    gt_probs,
+    build_gender_pred_labels_dict,
+    get_gender_pred_labels,
     nci_spec_low,
     pathos_2,
-    plot_v_plot,
-    plt,
-    single_thres_subj_wise_agreement,
-    sns,
+    plot_jaccard_index_plot,
+    product,
+    res,
     target_ad_specificity,
-    uncertainties,
 ):
-    ad_probs = gt_probs[pathos_2[pathos_2["Disease"] == "AD"].index]
-    nci_probs = gt_probs[pathos_2[pathos_2["Disease"] == "NCI"].index]
-    fig = plt.figure(figsize=(18, 10))
-    gs = GridSpec(2, 2, height_ratios=[1, 1])
-    fig.add_subplot(gs[0])
-    plot_v_plot(
-        single_thres_subj_wise_agreement,
-        gt_probs,
-        uncertainties,
-        f"Single threshold, specificity: {target_ad_specificity:.2f}% AD",
-        False,
-        False,
-    )
-    plt.xlim([0.0, 1.0])
-    plt.ylabel(
-        "Percent agreement between simulated and\n inferent scores for subjects"
-    )
-    plt.gca().set_xticklabels([])
-    fig.add_subplot(gs[1])
-    plot_v_plot(
-        dual_thres_subj_wise_agreement,
-        gt_probs,
-        uncertainties,
-        f"Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
-        False,
-        False,
-    )
-    plt.xlim([0.0, 1.0])
-    plt.gca().set_xticklabels([])
-    plt.gca().set_yticklabels([])
-    plt.ylabel("")
-    leg_handles, leg_labels = plt.gca().get_legend_handles_labels()
-    for i in [3, 4]:
-        fig.add_subplot(gs[i - 1])
-        sns.histplot(
-            ad_probs,
-            color="r",
-            bins=30,
-            label="Classifier probability score for AD patients",
-            fill=True,
-            alpha=0.3,
-        )
-        sns.histplot(
-            nci_probs,
-            color="b",
-            bins=30,
-            label="Classifier probability score for NCI patients",
-            fill=True,
-            alpha=0.3,
-        )
-        plt.xlim([0.0, 1.0])
-        if i == 4:
-            plt.gca().set_yticklabels([])
-            plt.ylabel("")
-    leg_handles_2, leg_labels_2 = plt.gca().get_legend_handles_labels()
-    fig.legend(
-        leg_handles,
-        leg_labels,
-        loc="upper center",
-        bbox_to_anchor=(0.5, 0.05),
-        ncol=len(uncertainties) // 2,
-    )
-    fig.legend(
-        leg_handles_2,
-        leg_labels_2,
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.07),
-        ncol=len(uncertainties) // 2,
-    )
-    fig.text(0.5, 0.07, "Probability score", va="center", ha="center")
-    fig.suptitle(
-        "V-plot showing agreement between simulated and inferent scores"
-        + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)}%)"
-    )
-    fig.text(
-        0.1,
-        -0.15,
-        "*The histograms below the v-plots show the distribution of classifier probability scores",
-        ha="left",
-        va="center",
+    plot_jaccard_index_plot(
+        labels_dict_single_thres={
+            label: color
+            for color, label in zip(
+                "bmkc",
+                map(
+                    lambda x: f"{x[0]}, {x[1]}",
+                    product(["Male", "Female"], ["NCI", "AD"]),
+                ),
+            )
+        },
+        labels_dict_dual_thres={
+            label: color
+            for color, label in zip(
+                "bgmkrc",
+                map(
+                    lambda x: f"{x[0]}, {x[1]}",
+                    product(["Male", "Female"], ["NCI", "Intermediate", "AD"]),
+                ),
+            )
+        },
+        gt_labels_single_thres=get_gender_pred_labels(
+            res.single_thres_gt_labels, pathos_2
+        ),
+        gt_labels_dual_thres=get_gender_pred_labels(
+            res.dual_thres_gt_labels, pathos_2
+        ),
+        pred_labels_dict_single_thres=build_gender_pred_labels_dict(
+            res.single_thres_pred_labels, pathos_2
+        ),
+        pred_labels_dict_dual_thres=build_gender_pred_labels_dict(
+            res.dual_thres_pred_labels, pathos_2
+        ),
+        single_thres_plot_title=f"Single threshold, specificity: {target_ad_specificity:.2f}% AD",
+        dual_thres_plot_title=f"Dual threshold, specificity: {nci_spec_low:.2f}% NCI, {ad_spec_high:.2f}% AD",
+        figure_title="Jaccard index plot showing differential classification\n(at least 10% simulated scores mismatch)",
     )
     return
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    ### Preliminary observations
+@app.cell
+def _(generate_waterfall_plot, get_gender_pred_labels, pd, product):
+    def plot_waterfall_plot_for_gender_data(
+        *,
+        threshold: float,
+        probs: pd.Series,
+        pathos_df: pd.DataFrame,
+        pred_labels: pd.Series,
+        uncertainty: int,
+    ) -> None:
+        labels_dict = {
+            i: f"{item[0]}, {item[1]}"
+            for i, item in enumerate(product(["Male", "Female"], ["NCI", "AD"]))
+        }
+        generate_waterfall_plot(
+            threshold=threshold,
+            probs=probs,
+            color_labels_data=get_gender_pred_labels(pred_labels, pathos_df),
+            labels=labels_dict,
+            colors=["#123456", "#fedabc", "#345dab", "#d1a2b3"],
+            title=f"Waterfall plot showing simulated and inferent scores\n at {uncertainty}% simulated uncertainty",
+            legend_title="Simulated score\n   predictions",
+        )
+    return (plot_waterfall_plot_for_gender_data,)
 
-    - RNA-Seq Measurement Uncertainty impacts differential classification predominantly at the classifier threshold.
-    - Filtering out genes with low mean TPMs decreases the percentage of both AD and NCI subjects whose diagnostic classification changes when at least 10% of simulations mismatch. 
-    - These low-expression genes are a source of classification instability under uncertainty which need to be taken into account when building diagnostic classifications.
-    - For a diagnostic classifier with two thresholds, 
-        - An initial lab result might suggest a wait and watch approach.
-        - The demonstration of near-certain reclassification under typical measurement noise for this specific patient's result acts like a diagnostic stress test (i.e revealing high instability).
-    """
+
+@app.cell
+def _(
+    gt_probs,
+    pathos_2,
+    plot_waterfall_plot_for_gender_data,
+    res,
+    single_thres,
+):
+    plot_waterfall_plot_for_gender_data(
+        threshold=single_thres,
+        probs=gt_probs,
+        pathos_df=pathos_2,
+        pred_labels=res.single_thres_pred_labels[5],
+        uncertainty=5,
+    )
+    plot_waterfall_plot_for_gender_data(
+        threshold=single_thres,
+        probs=gt_probs,
+        pathos_df=pathos_2,
+        pred_labels=res.single_thres_pred_labels[25],
+        uncertainty=25,
     )
     return
 
