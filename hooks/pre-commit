@@ -1,0 +1,35 @@
+#!/usr/bin/sh
+#
+# A git hook to run linting and formatting on Python scripts in this
+# repository.
+#
+
+# Redirect output to stderr.
+exec 1>&2
+
+
+# Check if ruff is installed
+command -v ruff > /dev/null 2>&1
+RESULT=$?
+if [ $RESULT -ne 0 ]; then
+    echo "ruff not installed. Please install ruff, then commit your changes."
+    exit 1
+fi
+
+# Immediately exit on failure
+set -e
+
+# Get a list of files currently staged for committing
+FOR_COMMIT=$(git diff --name-only --cached .)
+
+# Lint using ruff
+ruff check .
+
+# Format using ruff
+ruff format .
+ruff check --select I --fix
+
+# Re-stage formatted files
+for file in $FOR_COMMIT; do
+    git add "$file"
+done
