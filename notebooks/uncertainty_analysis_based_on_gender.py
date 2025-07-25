@@ -129,9 +129,7 @@ def _():
         plot_differential_classification_results,
         plot_jaccard_index_plot,
     )
-    from src.simulation import (
-        simulate_multiple_uncertainties,
-    )
+    from src.simulation import simulate_multiple_uncertainties
 
     return (
         NumpyFloat32Array1D,
