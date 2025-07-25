@@ -120,6 +120,10 @@ def _():
     import pandas as pd
     import seaborn as sns
     from matplotlib.gridspec import GridSpec
+    from mpl_toolkits.axes_grid1.inset_locator import (
+        inset_axes,
+        mark_inset,
+    )
 
     from src.dtypes import NumpyFloat32Array1D
     from src.logreg_classifier import antilogit_classifier_score
@@ -142,6 +146,8 @@ def _():
         calculate_sensitivity_specificity_and_predictive_values,
         calculate_subject_wise_agreement,
         generate_waterfall_plot,
+        inset_axes,
+        mark_inset,
         np,
         pd,
         plot_differential_classification_results,
@@ -1057,32 +1063,80 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(gt_probs, plt, res, sns):
+def _(gt_probs, inset_axes, mark_inset, np, plt, res, sns):
     _uncert = 35
     _pred_probs = res.pred_prob_arrs[_uncert]
+    _nbins = 30
+
+    _fig, _ax = plt.subplots(figsize=(12, 8))
     sns.histplot(
         _pred_probs,
         color="b",
         alpha=0.3,
         fill=True,
-        bins=30,
+        bins=_nbins,
         stat="density",
         label="Simulated subjects",
+        ax=_ax,
     )
     sns.histplot(
         gt_probs.values,
         color="r",
         alpha=0.3,
         fill=True,
-        bins=30,
+        bins=_nbins,
         stat="density",
         label="Real subjects",
+        ax=_ax,
     )
     plt.xlabel("Classifier score (probability)")
     plt.ylabel("Density")
-    plt.legend()
+    plt.legend(loc="best")
     plt.title(
         f"Histogram of probability scores from \nsimulated and real subjects at {_uncert}% simulated uncertainty."
+    )
+    # Make zoomed inset
+    _inset_axs = inset_axes(_ax, loc="center", width="50%", height="50%")
+    sns.histplot(
+        _pred_probs,
+        color="b",
+        alpha=0.3,
+        fill=True,
+        bins=_nbins,
+        stat="density",
+        label="Simulated subjects",
+        ax=_inset_axs,
+    )
+    sns.histplot(
+        gt_probs.values,
+        color="r",
+        alpha=0.3,
+        fill=True,
+        bins=_nbins,
+        stat="density",
+        label="Real subjects",
+        ax=_inset_axs,
+    )
+    _x_min, _x_max = 0.1, 0.9
+    _hist_data, _ = np.histogram(
+        _pred_probs[(_pred_probs >= _x_min) & (_pred_probs <= _x_max)],
+        bins=_nbins,
+        density=True,
+    )
+    _y_min, _y_max = 0, _hist_data.max()
+    _inset_axs.set_xlim(_x_min, _x_max)
+    _inset_axs.set_ylim(_y_min, _y_max)
+
+    plt.xlabel("")
+    plt.ylabel("")
+
+    mark_inset(
+        _ax,
+        _inset_axs,
+        loc1=1,
+        loc2=2,
+        fc="none",
+        ec="gray",
     )
     return
 
