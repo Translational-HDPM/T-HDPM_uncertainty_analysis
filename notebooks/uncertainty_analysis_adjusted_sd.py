@@ -665,7 +665,7 @@ def _(mo):
     \sigma = \frac{a}{b + \mu} + c
     $$
 
-    where $\mu$ and $\sigma$ are mean and standard deviation of the $log_2 (1+TPM)$ dataset, respectively and $a$, $b$, $c$ are constants.\\
+    where $\mu$ and $\sigma$ are mean and standard deviation of the $log_2 (1+TPM)$ dataset, respectively and $a$, $b$, $c$ are constants.
 
     We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 6.0. 
 
@@ -686,7 +686,7 @@ def _(mo):
 
     $$\mu_{ij} = log_{2}(1 + TPM_{ij})$$
 
-    $$\sigma_{ij} = (\frac{a}{\mu_{ij} + b} + c)$$
+    $$\sigma_{ij} = \frac{a}{\mu_{ij} + b} + c$$
 
     $$\sigma_{ij, scaled} = \frac{scaling factor * k * \sigma_{ij}}{100}$$
 

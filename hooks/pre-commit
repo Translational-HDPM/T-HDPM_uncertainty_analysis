@@ -31,5 +31,7 @@ ruff check --select I --fix
 
 # Re-stage formatted files
 for file in $FOR_COMMIT; do
-    git add "$file"
+    if [ -f "$file" ]; then
+        git add "$file"
+    fi
 done

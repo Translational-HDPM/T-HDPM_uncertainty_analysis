@@ -549,7 +549,6 @@ def plot_bland_altman(
     loa_lower = mean_diff - 1.96 * std_diff
 
     # Plot Bland-Altman plot
-    plt.figure(figsize=(8, 5))
     plt.scatter(mean_measurements, differences, color="blue", alpha=0.7)
     plt.axhline(
         mean_diff, color="gray", linestyle="--", label=f"Mean diff = {mean_diff:.2f}"
@@ -570,8 +569,6 @@ def plot_bland_altman(
         plt.savefig(f"{title}.png")
     if show:
         plt.show()
-        return
-    plt.close()
 
 
 def plot_v_plot(
