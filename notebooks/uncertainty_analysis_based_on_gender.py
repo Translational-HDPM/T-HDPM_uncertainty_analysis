@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.13"
+__generated_with = "0.14.15"
 app = marimo.App()
 
 
@@ -154,9 +154,9 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, patients_df_2):
     mo.md(
-        r"""
+        rf"""
     The `raw_data` dataframe contains the TPM values for {patients_df_2.shape[1]} subjects (including technical replicates), along with the coefficients of the classifier. The `pathos` dataframe contains the original categories that the patients belong to.
 
 
@@ -252,7 +252,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
@@ -616,40 +616,22 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
-        r"""We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values."""
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""In general, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation) we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$."""
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf))."""
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
         r"""
+    We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values.
+
+    In general, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation) we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$.
+
+    However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf)).
+
     Aligning with Law et al (2014), the relationship between the standard deviation and the mean can be modeled as
 
     $$
-    \sqrt{\sigma} = \frac{a}{b + \mu} + c
+    \sigma = \frac{a}{b + \mu} + c
     $$
 
     where $\mu$ and $\sigma$ are mean and standard deviation of the $log_2 (1+TPM)$ dataset, respectively and $a$, $b$, $c$ are constants.\\
 
-    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 8. 
+    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 6.0. 
 
     ///note
     The values of $a$, $b$, $c$ and $scaling factor$ have been set without empirical calculations due to lack of sufficient technical replicate data. Ideally, if technical replicate data is available, these parameters should be set empirically.
@@ -688,13 +670,13 @@ def _(np):
         a: float = 0.75,
         b: float = 1.0,
         c: float = 0.25,
-        scaling_factor: float = 8.0,
+        scaling_factor: float = 6.0,
     ) -> float:
         r"""
         Calculate scaled standard deviation for a given TPM value and baseline
         uncertainty to simulate based on the equation
         $$
-        \sqrt{\sigma} = \frac{a}{b + \mu} + c
+        \sigma = \frac{a}{b + \mu} + c
         $$
 
         Parameters
@@ -718,8 +700,8 @@ def _(np):
             The scaled standard deviation value to use for generating simulated TPM
             values.
         """
-        sqrt_sigma = a / (np.log2(tpm + 1) + b) + c
-        scaled_pct_sd = scaling_factor * uncertainty_pct * sqrt_sigma**2.0
+        sigma = a / (np.log2(tpm + 1) + b) + c
+        scaled_pct_sd = scaling_factor * uncertainty_pct * sigma
         return scaled_pct_sd / 100
 
     return (calculate_scaled_sd,)

@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.13"
+__generated_with = "0.14.15"
 app = marimo.App()
 
 
@@ -120,6 +120,10 @@ def _():
     import pandas as pd
     import seaborn as sns
     from matplotlib.gridspec import GridSpec
+    from mpl_toolkits.axes_grid1.inset_locator import (
+        inset_axes,
+        mark_inset,
+    )
 
     from src.dtypes import NumpyFloat32Array1D
     from src.logreg_classifier import antilogit_classifier_score
@@ -142,6 +146,8 @@ def _():
         calculate_sensitivity_specificity_and_predictive_values,
         calculate_subject_wise_agreement,
         generate_waterfall_plot,
+        inset_axes,
+        mark_inset,
         np,
         pd,
         plot_differential_classification_results,
@@ -377,7 +383,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used."""
@@ -656,12 +662,12 @@ def _(mo):
     Aligning with Law et al (2014), the relationship between the standard deviation and the mean can be modeled as
 
     $$
-    \sqrt{\sigma} = \frac{a}{b + \mu} + c
+    \sigma = \frac{a}{b + \mu} + c
     $$
 
     where $\mu$ and $\sigma$ are mean and standard deviation of the $log_2 (1+TPM)$ dataset, respectively and $a$, $b$, $c$ are constants.\\
 
-    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 8. 
+    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 6.0. 
 
     ///note
     The values of $a$, $b$, $c$ and $scaling factor$ have been set without empirical calculations due to lack of sufficient technical replicate data. Ideally, if technical replicate data is available, these parameters should be set empirically.
@@ -680,7 +686,7 @@ def _(mo):
 
     $$\mu_{ij} = log_{2}(1 + TPM_{ij})$$
 
-    $$\sigma_{ij} = (\frac{a}{\mu_{ij} + b} + c)^2$$
+    $$\sigma_{ij} = (\frac{a}{\mu_{ij} + b} + c)$$
 
     $$\sigma_{ij, scaled} = \frac{scaling factor * k * \sigma_{ij}}{100}$$
 
@@ -700,13 +706,13 @@ def _(np):
         a: float = 0.75,
         b: float = 1.0,
         c: float = 0.25,
-        scaling_factor: float = 8.0,
+        scaling_factor: float = 6.0,
     ) -> float:
         r"""
         Calculate scaled standard deviation for a given TPM value and baseline
         uncertainty to simulate based on the equation
         $$
-        \sqrt{\sigma} = \frac{a}{b + \mu} + c
+        \sigma = \frac{a}{b + \mu} + c
         $$
 
         Parameters
@@ -730,8 +736,8 @@ def _(np):
             The scaled standard deviation value to use for generating simulated TPM
             values.
         """
-        sqrt_sigma = a / (np.log2(tpm + 1) + b) + c
-        scaled_pct_sd = scaling_factor * uncertainty_pct * sqrt_sigma**2.0
+        sigma = a / (np.log2(tpm + 1) + b) + c
+        scaled_pct_sd = scaling_factor * uncertainty_pct * sigma
         return scaled_pct_sd / 100
 
     return (calculate_scaled_sd,)
@@ -1046,6 +1052,91 @@ def _(
         "*The histograms below the v-plots show the distribution of classifier probability scores",
         ha="left",
         va="center",
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""### Histogram of Simulated Scores""")
+    return
+
+
+@app.cell(hide_code=True)
+def _(gt_probs, inset_axes, mark_inset, np, plt, res, sns):
+    _uncert = 35
+    _pred_probs = res.pred_prob_arrs[_uncert]
+    _nbins = 30
+
+    _fig, _ax = plt.subplots(figsize=(12, 8))
+    sns.histplot(
+        _pred_probs,
+        color="b",
+        alpha=0.3,
+        fill=True,
+        bins=_nbins,
+        stat="density",
+        label="Simulated subjects",
+        ax=_ax,
+    )
+    sns.histplot(
+        gt_probs.values,
+        color="r",
+        alpha=0.3,
+        fill=True,
+        bins=_nbins,
+        stat="density",
+        label="Real subjects",
+        ax=_ax,
+    )
+    plt.xlabel("Classifier score (probability)")
+    plt.ylabel("Density")
+    plt.legend(loc="best")
+    plt.title(
+        f"Histogram of probability scores from \nsimulated and real subjects at {_uncert}% simulated uncertainty."
+    )
+    # Make zoomed inset
+    _inset_axs = inset_axes(_ax, loc="center", width="50%", height="50%")
+    sns.histplot(
+        _pred_probs,
+        color="b",
+        alpha=0.3,
+        fill=True,
+        bins=_nbins,
+        stat="density",
+        label="Simulated subjects",
+        ax=_inset_axs,
+    )
+    sns.histplot(
+        gt_probs.values,
+        color="r",
+        alpha=0.3,
+        fill=True,
+        bins=_nbins,
+        stat="density",
+        label="Real subjects",
+        ax=_inset_axs,
+    )
+    _x_min, _x_max = 0.1, 0.9
+    _hist_data, _ = np.histogram(
+        _pred_probs[(_pred_probs >= _x_min) & (_pred_probs <= _x_max)],
+        bins=_nbins,
+        density=True,
+    )
+    _y_min, _y_max = 0, _hist_data.max()
+    _inset_axs.set_xlim(_x_min, _x_max)
+    _inset_axs.set_ylim(_y_min, _y_max)
+
+    plt.xlabel("")
+    plt.ylabel("")
+
+    mark_inset(
+        _ax,
+        _inset_axs,
+        loc1=1,
+        loc2=2,
+        fc="none",
+        ec="gray",
     )
     return
 
