@@ -662,12 +662,12 @@ def _(mo):
     Aligning with Law et al (2014), the relationship between the standard deviation and the mean can be modeled as
 
     $$
-    \sqrt{\sigma} = \frac{a}{b + \mu} + c
+    \sigma = \frac{a}{b + \mu} + c
     $$
 
-    where $\mu$ and $\sigma$ are mean and standard deviation of the $log_2 (1+TPM)$ dataset, respectively and $a$, $b$, $c$ are constants.\\
+    where $\mu$ and $\sigma$ are mean and standard deviation of the $log_2 (1+TPM)$ dataset, respectively and $a$, $b$, $c$ are constants.
 
-    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 8. 
+    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 6. 
 
     ///note
     The values of $a$, $b$, $c$ and $scaling factor$ have been set without empirical calculations due to lack of sufficient technical replicate data. Ideally, if technical replicate data is available, these parameters should be set empirically.
@@ -686,7 +686,7 @@ def _(mo):
 
     $$\mu_{ij} = log_{2}(1 + TPM_{ij})$$
 
-    $$\sigma_{ij} = (\frac{a}{\mu_{ij} + b} + c)^2$$
+    $$\sigma_{ij} = \frac{a}{\mu_{ij} + b} + c$$
 
     $$\sigma_{ij, scaled} = \frac{scaling factor * k * \sigma_{ij}}{100}$$
 
@@ -706,13 +706,13 @@ def _(np):
         a: float = 0.75,
         b: float = 1.0,
         c: float = 0.25,
-        scaling_factor: float = 8.0,
+        scaling_factor: float = 6.0,
     ) -> float:
         r"""
         Calculate scaled standard deviation for a given TPM value and baseline
         uncertainty to simulate based on the equation
         $$
-        \sqrt{\sigma} = \frac{a}{b + \mu} + c
+        \sigma = \frac{a}{b + \mu} + c
         $$
 
         Parameters
@@ -736,8 +736,8 @@ def _(np):
             The scaled standard deviation value to use for generating simulated TPM
             values.
         """
-        sqrt_sigma = a / (np.log2(tpm + 1) + b) + c
-        scaled_pct_sd = scaling_factor * uncertainty_pct * sqrt_sigma**2.0
+        sigma = a / (np.log2(tpm + 1) + b) + c
+        scaled_pct_sd = scaling_factor * uncertainty_pct * sigma
         return scaled_pct_sd / 100
 
     return (calculate_scaled_sd,)
