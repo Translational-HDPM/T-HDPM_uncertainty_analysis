@@ -1,18 +1,13 @@
 import marimo
 
-__generated_with = "0.14.15"
+__generated_with = "0.14.16"
 app = marimo.App()
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
-        r"""
-    ## Modeling of Measurement Uncertainty of a high-dimensional RNA-Seq classifier of cell-free mRNA for Alzheimer’s Disease: Effect of Gender on Differential classification
-
-
-    ### Author: Deb Debnath
-    """
+        r"""## Modeling of Measurement Uncertainty of a high-dimensional RNA-Seq classifier of cell-free mRNA for Alzheimer’s Disease: Effect of Gender on Differential classification"""
     )
     return
 
@@ -23,13 +18,14 @@ def _(mo):
         r"""
     ### Motivation
 
-    The main reasons for ‘clinical-grade’ measurement uncertainty
-    usefulness include:
+    Precision Medicine recognizes common complex diseases are actually multiple ‘endotypes’ with different underlying pathology that present with a similar phenotype. Rather than discrete stages of disease, common complex diseases represent a continuum of pathology. End stage common complex disease may not include a complete catalog of biomarkers for earlier points in pathology continuum. Complexity of endotypes presents unique regulatory challenges requiring data simulation to model reproducibility. Translational Diagnostics are transitioning from single analyte assays to multi-analyte, machine learning (ML) classifiers.
 
-    - improved understanding of test interpretation;
-    - operational tool to discern laboratory test drift;
-    - sheds light on the analytes that should be prioritized to decrease overall uncertainty range and;
-    - upon request, laboratories must make estimates of measurement uncertainty available to laboratory users.
+    For the use of such 'clinical-grade' ML predictors, it is recommended in the literature to document any sources of variation (aleatoric uncertainty) that affect reproducibility and estimate the variability of the prediction. In this context, methods for estimating ‘clinical-grade’ measurement uncertainty can:
+
+    - improve understanding of test interpretation;
+    - act as an operational tool to discern laboratory test drift;
+    - shed light on the analytes that should be prioritized to decrease overall uncertainty range and;
+    - upon request, help laboratories make estimates of measurement uncertainty available to laboratory users.
     """
     )
     return
@@ -41,7 +37,7 @@ def _(mo):
         r"""
     ### Goal
 
-    Using modeled simulation of high dimensional RNA-Seq, can we estimate inherent empirically informed measurement uncertainties in an illustrative AD classifier?
+    This work demonstrates a methodology for estimating the impact of plausible, empirically-informed technical measurement uncertainty on the performance of high-dimensional RNA-Seq classifiers, in benchmark case for Alzheimer's Disease, using Monte Carlo simulations. We simulate the assay variation for each gene independently for a given subject at different levels of relative standard deviation (RSD) of Transcripts Per Million (TPM) values (gene differential expression levels).
     """
     )
     return
@@ -53,6 +49,8 @@ def _(mo):
         r"""
     ### Measurement Uncertainty: Regulatory Setting
 
+    Despite significant advances in diagnostic testing, only a few guidelines have been developed for interpretation of measurement uncertainty in medical laboratories, including
+
     - Clinical Laboratory Standards Institute (CLSI)
         - CLSI EP29-A Expression of Measurement Uncertainty in Laboratory Medicine
     - International Standards Organization (ISO)
@@ -60,15 +58,9 @@ def _(mo):
         - ISO/TS 20914:2019
     - Food and Drug Administration (FDA)
         - Class II Special Controls Guidance Document: Ovarian Adnexal Mass Assessment Score Test System (2011).
+
+    Monte Carlo techniques are recommended by FDA to estimate diagnostic uncertainty of multi-dimensional classifiers, which suggest general guidelines through which overall uncertainty of high dimensional classifiers can be determined or estimated. Besides noted variation, sample site, operator and instrument variation need to be considered.
     """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""Monte Carlo techniques are recommended by FDA to estimate diagnostic uncertainty of multi-dimensional classifiers. Overall uncertainty of high dimensional classifiers can be determined or estimated. Besides noted variation, sample site, operator and instrument variation need to be considered."""
     )
     return
 
@@ -86,15 +78,7 @@ def _(mo):
     The ML model used in this notebook is a classifier from a study published in _Science Advances_ ([Toden et al, 2020](https://www.science.org/doi/abs/10.1126/sciadv.abb1654)). The study utilized plasma-derived circulating cell-free messenger RNA (cf-mRNA) from a dataset comprising 126 patients with Alzheimer's Disease (AD) and 116 healthy, non-cognitive impairment (NCI) controls of similar age distribution, sourced from five independent academic centers and one commercial provider; pre-analytic site-specific effects were adjusted for in subsequent analyses. 
 
     To prepare the machine learning model for AD classification while minimizing bias, feature selection was conducted exclusively on samples from a distinct training cohort (University of Kentucky: 24 NCI and 66 AD patients). This involved identifying differentially expressed genes using DESeq2 with a false discovery rate (FDR) cutoff of less than 0.05.
-    """
-    )
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
     The machine learning model, a logistic regression with L2 regularization, was trained using the expression levels (transcripts per million) of these 1658 selected genes from the University of Kentucky training cohort (24 NCI, 66 AD). L2 regularization was specifically employed to prevent overfitting. Metaparameters for this model were optimized using a 15-fold cross-validation strategy on the training cohort. 
 
     The classifier's ability to discriminate between AD patients and NCI controls was then rigorously evaluated on an independent test set. This test set consisted of the remaining 60 AD patients and 92 NCI controls, derived from four independent sources distinct from the training data (UC San Diego, University of Washington, Indiana University, BioIVT). In this independent validation, the classifier achieved an Area Under the Receiver Operating Characteristic curve (AUC) of 0.83. Further analysis revealed that the genes included in the classifier were enriched in biological pathways known to be associated with AD pathogenesis, including immune response and cellular metabolic processes, thereby lending biological plausibility to the statistical findings.
@@ -103,7 +87,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import sys
     from itertools import product
@@ -113,7 +97,7 @@ def _():
     return Path, product
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import matplotlib.pyplot as plt
     import numpy as np
@@ -149,24 +133,103 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### The Dataset""")
+    mo.md(r"""### Setting parameters""")
     return
 
 
 @app.cell(hide_code=True)
-def _(mo, patients_df_2):
+def _(mo):
     mo.md(
-        rf"""
-    The `raw_data` dataframe contains the TPM values for {patients_df_2.shape[1]} subjects (including technical replicates), along with the coefficients of the classifier. The `pathos` dataframe contains the original categories that the patients belong to.
+        r"""
+    Here we set some parameters that we use throughout the analysis.
 
-
-    For convenience we set the indexes of the dataframes to the patient IDs. We also ensure that between `pathos` and `raw_data` there are no null values and no missing patients (subjects).
+    1. **Mean TPM**: When we filter genes for analysis with a reduced feature set, we drop genes for which the mean TPM is below this cutoff. (details included later)
+    2. **Range of percent uncertainty values to simulate**: List of values taken from literature reported studies representing different overall noise scenario, used as a percentage to scale the baseline technical standard deviation calculated from the TPM value. 
+    3. **Number of samples**: Number of Monte Carlo samples to simulate for each subject
     """
     )
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
+def _(mo):
+    mean_tpm_slider = mo.ui.slider(
+        start=0, stop=100, value=0, label="Mean TPM cutoff value", show_value=True
+    )
+    n_samples_slider = mo.ui.slider(
+        start=100,
+        stop=10_000,
+        step=100,
+        value=100,
+        label="Number of Monte Carlo samples per TPM value",
+        show_value=True,
+    )
+    uncertainty_range_slider = mo.ui.range_slider(
+        start=5,
+        stop=40,
+        step=1,
+        value=[5, 35],
+        label="Range of percent uncertainty values to simulate",
+        show_value=True,
+    )
+    return mean_tpm_slider, n_samples_slider, uncertainty_range_slider
+
+
+@app.cell(hide_code=True)
+def _():
+    master_seed = 321  # Random number seed
+    num_parallel_workers = 8  # Number of parallel jobs to run for simulation
+    return master_seed, num_parallel_workers
+
+
+@app.cell(hide_code=True)
+def _(mean_tpm_slider, mo, n_samples_slider, uncertainty_range_slider):
+    mo.callout(
+        mo.vstack(
+            [
+                mean_tpm_slider,
+                n_samples_slider,
+                uncertainty_range_slider,
+            ]
+        )
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mean_tpm_slider, n_samples_slider, uncertainty_range_slider):
+    n_samples = (
+        n_samples_slider.value
+    )  # Number of Monte Carlo samples to simulate for each subject
+    uncertainties = list(
+        range(
+            uncertainty_range_slider.value[0],
+            uncertainty_range_slider.value[1] + 5,
+            5,
+        )
+    )  # Maximum percentage of noise/uncertainty to simulate. (aka coefficient of variation)
+    mean_TPM = (
+        mean_tpm_slider.value
+    )  # When we filter genes for analysis with a reduced feature set,
+    # we drop genes for which the mean TPM is below this cutoff
+    return mean_TPM, n_samples, uncertainties
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""### The Dataset""")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo, patients_df, patients_df_2):
+    mo.md(
+        rf"""The raw dataset contains gene expression data in the form of TPM values for subjects (including technical replicates), along with the coefficients of the classifier. In addition, we also utilize original disease categories (pathology) that the patients belong to. The dataset contains technical replicates for a subset ({patients_df.shape[1] - patients_df_2.shape[1]} samples) of {patients_df.shape[1]} biological samples. For this analysis, these technical replicates were averaged to create a single expression profile per biological subject. Our subsequent simulation aims to re-introduce a plausible model of this technical variability."""
+    )
+    return
+
+
+@app.cell(hide_code=True)
 def _(Path, pd):
     data_root = Path(__file__).parent.parent.parent / "raw_data"
     raw_data = pd.read_excel(
@@ -180,25 +243,19 @@ def _(Path, pd):
     return pathos, raw_data
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(raw_data):
     raw_data.head()
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(pathos):
     pathos.head()
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""For convenience we set the index to the specified columns.""")
-    return
-
-
-@app.cell
 def _(pathos):
     pathos_1 = pathos.dropna(subset=["Disease"])
     pathos_1 = pathos_1.loc[pathos_1.index.dropna(), :]
@@ -206,7 +263,7 @@ def _(pathos):
     return (pathos_1,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(np, raw_data):
     patients_df = raw_data[~raw_data.loc[:, "Coeff"].isnull()]
     coefficients = np.nan_to_num(np.array(patients_df.loc[:, "Coeff"]))
@@ -216,14 +273,6 @@ def _(np, raw_data):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""The raw dataset contains technical replicates for some subjects. We average the technical replicates to reduce them to a single data point."""
-    )
-    return
-
-
-@app.cell
 def _(genes, pathos_1, patients_df):
     grouped_cols = patients_df.columns.str.split("-").str[0]
     grouped = patients_df.groupby(grouped_cols, axis=1)
@@ -247,146 +296,47 @@ def _(genes, pathos_1, patients_df):
 
 
 @app.cell(hide_code=True)
+def _(mo, patients_df):
+    mo.md(
+        rf"""Following is a summary of the number of patients in each disease category in the dataset. For each patient, the dataset comprises of TPM values from {patients_df.shape[0]} genes."""
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(pathos_2):
+    pathos_2["Disease"].value_counts()
+    return
+
+
+@app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Setting parameters""")
+    mo.md(r"""### Removing genes with low TPM values contributing noise""")
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
-        r"""
-    Here we set some parameters that we will use throughout the analysis.
-
-    1. `mean_TPM`: When we filter genes for analysis with a reduced feature set, we drop genes for which the mean TPM is below this cutoff
-    2. `num_patients`: Total number of samples/subjects/patients
-    3. `uncertainties`: List of values representing maximum percentage of noise/uncertainty to simulate. (aka coefficient of variation). The corresponding slider below can be used to specify the upper and lower limits of percentages, with values being generated in steps of 5.
-    4. `n_samples`: Number of Monte Carlo samples to simulate for each subject
-    """
+        r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used. The objective of removing genes is to filter out any genes with low TPM values that affect the predictions of the classifier by adding noise."""
     )
-    return
-
-
-@app.cell
-def _():
-    master_seed = 321  # Random number seed
-    num_parallel_workers = 8  # Number of parallel jobs to run for simulation
-    return master_seed, num_parallel_workers
-
-
-@app.cell
-def _(mo, patients_df_1):
-    mean_tpm_slider = mo.ui.slider(
-        start=0, stop=100, value=0, label="Mean TPM cutoff value", show_value=True
-    )
-    num_patients_slider = mo.ui.slider(
-        start=1,
-        stop=patients_df_1.shape[1],
-        value=patients_df_1.shape[1],
-        label="Number of patients to consider from the dataset",
-        show_value=True,
-    )
-    n_samples_slider = mo.ui.slider(
-        start=100,
-        stop=10_000,
-        step=100,
-        value=100,
-        label="Number of Monte Carlo samples per TPM value",
-        show_value=True,
-    )
-    uncertainty_range_slider = mo.ui.range_slider(
-        start=5,
-        stop=100,
-        step=1,
-        value=[5, 35],
-        label="Range of percent uncertainty values to simulate",
-        show_value=True,
-    )
-    return (
-        mean_tpm_slider,
-        n_samples_slider,
-        num_patients_slider,
-        uncertainty_range_slider,
-    )
-
-
-@app.cell
-def _(
-    mean_tpm_slider,
-    mo,
-    n_samples_slider,
-    num_patients_slider,
-    uncertainty_range_slider,
-):
-    mo.callout(
-        mo.vstack(
-            [
-                num_patients_slider,
-                mean_tpm_slider,
-                n_samples_slider,
-                uncertainty_range_slider,
-            ]
-        )
-    )
-    return
-
-
-@app.cell
-def _(
-    mean_tpm_slider,
-    n_samples_slider,
-    num_patients_slider,
-    uncertainty_range_slider,
-):
-    n_samples = (
-        n_samples_slider.value
-    )  # Number of Monte Carlo samples to simulate for each subject
-    uncertainties = list(
-        range(
-            uncertainty_range_slider.value[0],
-            uncertainty_range_slider.value[1] + 5,
-            5,
-        )
-    )  # Maximum percentage of noise/uncertainty to simulate. (aka coefficient of variation)
-    mean_TPM = (
-        mean_tpm_slider.value
-    )  # When we filter genes for analysis with a reduced feature set,
-    # we drop genes for which the mean TPM is below this cutoff
-    num_patients = (
-        num_patients_slider.value
-    )  # Total number of samples/subjects/patients
-    return mean_TPM, n_samples, num_patients, uncertainties
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""### Dropping genes below TPM threshold""")
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used."""
-    )
-    return
-
-
-@app.cell
 def _(patients_df_1):
     means = patients_df_1.mean(axis=1)
     return (means,)
 
 
-@app.cell
-def _(coefficients, mean_TPM, means, num_patients, patients_df_1):
+@app.cell(hide_code=True)
+def _(coefficients, mean_TPM, means, patients_df_1):
     coefficients_1 = coefficients[means >= mean_TPM]
     patients_df_2 = patients_df_1[means >= mean_TPM]
-    patients_df_2 = patients_df_2.iloc[:, :num_patients]
     return coefficients_1, patients_df_2
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo, patients_df_1, patients_df_2):
     mo.callout(
         mo.md(
@@ -434,7 +384,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(antilogit_classifier_score, coefficients_1, np, patients_df_2, pd):
     _z_scores = (
         patients_df_2.values - patients_df_2.mean(axis=1).values.reshape(-1, 1)
@@ -446,14 +396,14 @@ def _(antilogit_classifier_score, coefficients_1, np, patients_df_2, pd):
     return (gt_probs,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(build_sensitivity_specificity_df, gt_probs, pathos_2):
     ad_sens_spec_df = build_sensitivity_specificity_df(pathos_2, gt_probs, "AD")
     nci_sens_spec_df = build_sensitivity_specificity_df(pathos_2, gt_probs, "NCI")
     return ad_sens_spec_df, nci_sens_spec_df
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
     _fig, _ = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(18, 6))
     plt.subplot(121)
@@ -472,6 +422,7 @@ def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
     plt.xlabel("")
     plt.ylabel("")
     plt.legend()
+    plt.title("(a) Alzheimer's disease (AD) category")
     plt.subplot(122)
     sns.lineplot(
         data=nci_sens_spec_df,
@@ -487,15 +438,26 @@ def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
     )
     plt.xlabel("")
     plt.legend()
+    plt.title("(b) Non-Cognitively Impaired (NCI) category")
     _fig.text(0.5, 0.05, "Probability threshold", ha="center", va="center")
     _fig.text(0.08, 0.35, "Sensitivity/Specificity", rotation="vertical")
     _fig.suptitle(
-        "Sensitivity and specificity versus probability threshold curves for AD and NCI categories."
+        "Figure 1. Sensitivity and specificity versus probability threshold curves for AD and NCI categories."
     )
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
+def _(mo):
+    mo.callout(
+        mo.md(
+            r"Figure 1. Sensitivity and specificity versus probability threshold curves for (a) Alzheimer's disease (AD) category and (b) Non-Cognitively Impaired (NCI) categories. The selection of the probability threshold is done where sensitivity = specificity, or the threshold which maximizes the value of Youden's Index"
+        )
+    )
+    return
+
+
+@app.cell(hide_code=True)
 def _(ad_sens_spec_df, np):
     _precision = 2
     _rounded_sens = ad_sens_spec_df["sensitivity"].apply(
@@ -515,25 +477,41 @@ def _(ad_sens_spec_df, np):
     return single_thres, target_ad_specificity
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     calculate_sensitivity_specificity_and_predictive_values,
     gt_probs,
-    mo,
     pathos_2,
     single_thres,
 ):
-    ad_sens, ad_spec, _, _ = calculate_sensitivity_specificity_and_predictive_values(
-        pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-        gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
-        0,
+    ad_sens, ad_spec, ad_ppv, ad_npv = (
+        calculate_sensitivity_specificity_and_predictive_values(
+            pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
+            gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
+            0,
+        )
     )
     ad_spec = ad_spec * 100.0
     ad_sens = ad_sens * 100.0
-    mo.callout(
-        mo.md(
-            f"At threshold {single_thres:.4f}, AD sensitivity = {ad_sens:.4f}, specificity = {ad_spec:.4f}, Youden's index = {(ad_sens + ad_spec - 100) / 100:.4f}. So, we use {single_thres:.4f} as our probability threshold for the single threshold classification scenario."
-        )
+    ad_ppv *= 100.0
+    ad_npv *= 100.0
+    return ad_npv, ad_ppv, ad_sens, ad_spec
+
+
+@app.cell(hide_code=True)
+def _(ad_npv, ad_ppv, ad_sens, ad_spec, mo, single_thres):
+    mo.md(
+        rf"""
+    At threshold {single_thres:.4f}, for AD,
+
+    - sensitivity = {ad_sens:.4f},
+    - specificity = {ad_spec:.4f},
+    - positive predictive value = {ad_ppv:.4f},
+    - negative predictive value = {ad_npv:.4f},
+    - Youden's index = {(ad_sens + ad_spec - 100) / 100:.4f}.
+
+    So, we use {single_thres:.4f} as our probability threshold for the single threshold classification scenario.
+    """
     )
     return
 
@@ -546,7 +524,7 @@ def _(mo, single_thres):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     threshold_step_slider = mo.ui.slider(
         start=0.01,
@@ -560,7 +538,7 @@ def _(mo):
     return (threshold_step_slider,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(single_thres, threshold_step_slider):
     threshold_step = threshold_step_slider.value
     dual_thres_low = max(0.01, single_thres - threshold_step)
@@ -568,23 +546,22 @@ def _(single_thres, threshold_step_slider):
     return dual_thres_high, dual_thres_low
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     calculate_sensitivity_specificity_and_predictive_values,
     dual_thres_high,
     dual_thres_low,
     gt_probs,
-    mo,
     pathos_2,
 ):
-    nci_sens_low, nci_spec_low, _, _ = (
+    nci_sens_low, nci_spec_low, nci_ppv_low, nci_npv_low = (
         calculate_sensitivity_specificity_and_predictive_values(
             pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
             gt_probs.apply(lambda x: 1 if x >= dual_thres_low else 0),
             0,
         )
     )
-    ad_sens_high, ad_spec_high, _, _ = (
+    ad_sens_high, ad_spec_high, ad_ppv_high, ad_npv_high = (
         calculate_sensitivity_specificity_and_predictive_values(
             pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
             gt_probs.apply(lambda x: 1 if x >= dual_thres_high else 0),
@@ -593,18 +570,54 @@ def _(
     )
     ad_spec_high = ad_spec_high * 100.0
     ad_sens_high = ad_sens_high * 100.0
+    ad_ppv_high *= 100.0
+    ad_npv_high *= 100.0
     nci_spec_low = nci_spec_low * 100.0
     nci_sens_low = nci_sens_low * 100.0
-
-    mo.callout(
-        mo.md(
-            f"""
-            At lower threshold {dual_thres_low:.4f}, NCI sensitivity = {nci_sens_low:.4f}, specificity = {nci_spec_low:.4f}, Youden's index = {(nci_sens_low + nci_spec_low - 100) / 100:.4f}.\n
-            At upper threshold {dual_thres_high:.4f}, AD sensitivity = {ad_sens_high:.4f}, specificity = {ad_spec_high:.4f}, Youden's index = {(ad_sens_high + ad_spec_high - 100) / 100:.4f}
-            """
-        )
+    nci_ppv_low *= 100.0
+    nci_npv_low *= 100.0
+    return (
+        ad_sens_high,
+        ad_spec_high,
+        nci_npv_low,
+        nci_ppv_low,
+        nci_sens_low,
+        nci_spec_low,
     )
-    return ad_spec_high, nci_spec_low
+
+
+@app.cell(hide_code=True)
+def _(
+    ad_sens_high,
+    ad_spec_high,
+    dual_thres_high,
+    dual_thres_low,
+    mo,
+    nci_npv_low,
+    nci_ppv_low,
+    nci_sens_low,
+    nci_spec_low,
+):
+    mo.md(
+        rf"""
+    At lower threshold {dual_thres_low:.4f}, for NCI,
+
+    - sensitivity = {nci_sens_low:.4f}
+    - specificity = {nci_spec_low:.4f}
+    - positive predictive value = {nci_ppv_low:.4f}
+    - negative predictive value = {nci_npv_low:.4f}
+    - Youden's index = {(nci_sens_low + nci_spec_low - 100) / 100:.4f}.
+
+    At upper threshold {dual_thres_high:.4f}, for AD
+
+    - sensitivity = {ad_sens_high:.4f}
+    - specificity = {ad_spec_high:.4f}
+    - positive predictive value = {nci_ppv_low:.4f}
+    - negative predictive value = {nci_npv_low:.4f}
+    - Youden's index = {(ad_sens_high + ad_spec_high - 100) / 100:.4f}
+    """
+    )
+    return
 
 
 @app.cell(hide_code=True)
@@ -617,24 +630,17 @@ def _(mo):
 def _(mo):
     mo.md(
         r"""
-    We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values.
+    We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values. The specific steps as mentioned in the guidance are as follows (for sake of simplicity, consider two individual analytes $X_1$ and $X_2$ with $Score = F(X_1, X_2)$ and repeatability precision data):
 
-    In general, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation) we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$.
+    1. Provide repeatability precision results (mean value, standard deviation (SD), and percentage coefficient of variation (%CV)) from previously performed precision studies and from the precision studies for the Score. Using these data, construct repeatability precision profiles for $X_1$ and $X_2$ by linear interpolation.
 
-    However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf)).
+    2. Consider a combination of two analytes with values $X_1 = U$ and $X_2 = V$. Using repeatability precision profiles, obtain $SD_1 (U)$ for $X_1 = U$ and $SD_2 (V)$ for $X_2 = V$.
 
-    Aligning with Law et al (2014), the relationship between the standard deviation and the mean can be modeled as
+    3. Generate $X_1^*$ using normal distribution with mean value of $U$ and standard deviation of $SD_1 (U)$ and generate $X_2^*$ using normal distribution with mean value of $V$ and standard deviation of $SD_2 (V)$. Calculate $Score^* = F(X_1^*, X_2^*)$. After performing this step $K$ times (for example, 100), calculate the mean value of score of $K$ measurements $Score^*_{mean}$ (corresponding to mean value of the score for $X_1 = U$ and $X_2 = V$) and standard deviation SD and %CV of the $K$ score measurements.
 
-    $$
-    \sigma = \frac{a}{b + \mu} + c
-    $$
+    4. Provide repeatability precision profile for the Score: values of the mean score $Score^* _{mean}$ with the SD and %CV from the previous step for all possible combinations of $U$ and $V$ for which precision profiles are available. 
 
-    where $\mu$ and $\sigma$ are mean and standard deviation of the $log_2 (1+TPM)$ dataset, respectively and $a$, $b$, $c$ are constants.
-
-    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 6.0. 
-
-    ///note
-    The values of $a$, $b$, $c$ and $scaling factor$ have been set without empirical calculations due to lack of sufficient technical replicate data. Ideally, if technical replicate data is available, these parameters should be set empirically.
+    As described in the guidance above, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation), we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$. However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed in which the standard deviation (technical variation) decreases with increasing TPM values to an asymptote. (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf)).
     """
     )
     return
@@ -662,7 +668,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(np):
     def calculate_scaled_sd(
         tpm: float,
@@ -711,20 +717,15 @@ def _(np):
 def _(mo):
     mo.md(
         r"""
-    After generating the simulated measurements we calculate the classifier predictions for these. We then compare the score for the simulated measurement ("simulated score") against the score for the actual measurement ("actual score"). Based on the set threshold(s) we track the classification of the simulated scores against the actual scores.
+    After generating the simulated measurements, we calculate the classifier predictions for these. We then compare the score for the simulated measurement ("simulated score") against the score for the actual measurement ("inferent score"). Based on the set decision threshold(s) for the classifier, we track the classification of the simulated scores against the inferent scores.
 
-    A **differentially classified subject** is a subject (patient) that has one or more simulated scores that produced a different classification into AD/NCI than the actual score. We track differentially classified subjects under two scenarios
-
-    1. at least one of the simulated scores is different from the actual score.
-    2. at least 10 % of the simulated scores are different from the actual score.
-
-    The two different definitions of differential classification track the performance of the classifier under a conservative and a relaxed definition of differential classification.
+    We define a **differentially classified subject** as a subject (patient) that satisfies a differential classification criterion to produce a different classification into AD/NCI than the inferent category. We track differentially classified subjects under the differential classification scenario where at least 10 % of the simulated scores are different from the actual score for a given subject.
     """
     )
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
     def sampler(
         tpm: float,
@@ -760,7 +761,7 @@ def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
     return (sampler,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     coefficients_1,
     dual_thres_high,
@@ -774,19 +775,6 @@ def _(
     single_thres,
     uncertainties,
 ):
-    res_1_diff_cls = simulate_multiple_uncertainties(
-        patients_df_2,
-        sampler,
-        uncertainties,
-        thres_low=dual_thres_low,
-        thres_high=dual_thres_high,
-        single_thres=single_thres,
-        coefficients=coefficients_1,
-        diff_class_lim=1,
-        n_samples=n_samples,
-        seed=master_seed,
-        num_workers=num_parallel_workers,
-    )
     res = simulate_multiple_uncertainties(
         patients_df_2,
         sampler,
@@ -800,7 +788,7 @@ def _(
         seed=master_seed,
         num_workers=num_parallel_workers,
     )
-    return res, res_1_diff_cls
+    return (res,)
 
 
 @app.cell(hide_code=True)
@@ -809,7 +797,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(np, pd, product):
     def get_gender_and_diagnosis_patient_ids(
         pathos_df: pd.DataFrame,
@@ -930,41 +918,7 @@ def _(np, pd, product):
     return build_gender_pred_labels_dict, get_gender_pred_labels
 
 
-@app.cell
-def _(
-    build_gender_pred_labels_dict,
-    get_gender_pred_labels,
-    pathos_2,
-    plot_differential_classification_results,
-    product,
-    res,
-    res_1_diff_cls,
-    target_ad_specificity,
-):
-    plot_differential_classification_results(
-        gt_labels=get_gender_pred_labels(res.single_thres_gt_labels, pathos_2),
-        one_sim_mismatch_pred_labels_dict=build_gender_pred_labels_dict(
-            res_1_diff_cls.single_thres_pred_labels, pathos_2
-        ),
-        ten_pct_sim_mismatch_pred_labels_dict=build_gender_pred_labels_dict(
-            res.single_thres_pred_labels, pathos_2
-        ),
-        labels_dict=dict(
-            zip(
-                map(
-                    lambda x: f"{x[0]}, {x[1]}",
-                    product(["Male", "Female"], ["NCI", "AD"]),
-                ),
-                "bgmk",
-            )
-        ),
-        figure_title="Differential classification based on gender for levels of uncertainty (5-35%)\n"
-        + f" (single threshold, specificity: {target_ad_specificity:.2f} % AD)",
-    )
-    return
-
-
-@app.cell
+@app.cell(hide_code=True)
 def _(
     ad_spec_high,
     build_gender_pred_labels_dict,
@@ -974,17 +928,20 @@ def _(
     plot_differential_classification_results,
     product,
     res,
-    res_1_diff_cls,
+    target_ad_specificity,
+    uncertainties,
 ):
     plot_differential_classification_results(
-        gt_labels=get_gender_pred_labels(res.dual_thres_gt_labels, pathos_2),
-        one_sim_mismatch_pred_labels_dict=build_gender_pred_labels_dict(
-            res_1_diff_cls.dual_thres_pred_labels, pathos_2
+        labels_dict_single_thres=dict(
+            zip(
+                map(
+                    lambda x: f"{x[0]}, {x[1]}",
+                    product(["Male", "Female"], ["NCI", "AD"]),
+                ),
+                "bmkc",
+            )
         ),
-        ten_pct_sim_mismatch_pred_labels_dict=build_gender_pred_labels_dict(
-            res.dual_thres_pred_labels, pathos_2
-        ),
-        labels_dict=dict(
+        labels_dict_dual_thres=dict(
             zip(
                 map(
                     lambda x: f"{x[0]}, {x[1]}",
@@ -993,35 +950,54 @@ def _(
                 "bgmkrc",
             )
         ),
-        figure_title="Differential classification for levels of uncertainty (5-35%)\n"
-        + f" (dual threshold, specificity: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD)",
+        gt_labels_single_thres=get_gender_pred_labels(
+            res.single_thres_gt_labels, pathos_2
+        ),
+        gt_labels_dual_thres=get_gender_pred_labels(res.dual_thres_gt_labels, pathos_2),
+        pred_labels_dict_single_thres=build_gender_pred_labels_dict(
+            res.single_thres_pred_labels, pathos_2
+        ),
+        pred_labels_dict_dual_thres=build_gender_pred_labels_dict(
+            res.dual_thres_pred_labels, pathos_2
+        ),
+        single_thres_plot_title=f"(a) Single threshold, specificity: {target_ad_specificity:.2f} % AD",
+        dual_thres_plot_title=f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
+        figure_title="Figure 2. Differential classification for levels of uncertainty"
+        + f" ({min(uncertainties)}-{max(uncertainties)}%)\n"
+        + "(at least 10% simulated scores mismatch)",
     )
     return
 
 
-@app.cell
-def _(
-    ad_spec_high,
-    nci_spec_low,
-    plot_jaccard_index_plot,
-    res,
-    target_ad_specificity,
-):
-    plot_jaccard_index_plot(
-        labels_dict_single_thres={"NCI": "b", "AD": "g"},
-        labels_dict_dual_thres={"NCI": "b", "Intermediate": "r", "AD": "g"},
-        gt_labels_single_thres=res.single_thres_gt_labels,
-        gt_labels_dual_thres=res.dual_thres_gt_labels,
-        pred_labels_dict_single_thres=res.single_thres_pred_labels,
-        pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
-        single_thres_plot_title=f"Single threshold, specificity: {target_ad_specificity:.2f}% AD",
-        dual_thres_plot_title=f"Dual threshold, specificity: {nci_spec_low:.2f}% NCI, {ad_spec_high:.2f}% AD",
-        figure_title="Jaccard index plot showing differential classification\n(at least 10% simulated scores mismatch)",
+@app.cell(hide_code=True)
+def _(mo, uncertainties):
+    mo.callout(
+        mo.md(rf"""
+        Figure 2. Differential classification for levels of uncertainty  ({min(uncertainties)}-{max(uncertainties)}%) (at least 10% simulated scores mismatch).  As simulated measurement uncertainty increases, a larger percentage of both AD and NCI subjects experience a change in their diagnostic classification in at least 10% of the simulated scenarios.
+    """)
     )
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    #### Jaccard index
+
+    To analyze the impact of simulated technical variation on the classifier's predictions, we use the Jaccard index to compare the predicted categories under synthetic noise against predicted categories with no perturbations. The Jaccard index calculates how similar two finite sets are. For two sets $A$ and $B$, it is defined as the ratio of the size of their intersection to the size of their union.
+
+    $$
+    J(A, B) = \frac{|A \cap B|}{|A \cup B|}
+    $$
+
+    If $A$ and $B$ are identical, the Jaccard index is 1. In this context, the lower the Jaccard index, the more dissimilar the predictions under noise are from the predictions without noise, indicating increased differential classification.
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
 def _(
     ad_spec_high,
     build_gender_pred_labels_dict,
@@ -1064,14 +1040,25 @@ def _(
         pred_labels_dict_dual_thres=build_gender_pred_labels_dict(
             res.dual_thres_pred_labels, pathos_2
         ),
-        single_thres_plot_title=f"Single threshold, specificity: {target_ad_specificity:.2f}% AD",
-        dual_thres_plot_title=f"Dual threshold, specificity: {nci_spec_low:.2f}% NCI, {ad_spec_high:.2f}% AD",
-        figure_title="Jaccard index plot showing differential classification\n(at least 10% simulated scores mismatch)",
+        single_thres_plot_title=f"(a) Single threshold, specificity: {target_ad_specificity:.2f}% AD",
+        dual_thres_plot_title=f"(b) Dual threshold, specificity: {nci_spec_low:.2f}% NCI, {ad_spec_high:.2f}% AD",
+        figure_title="Figure 3. Jaccard index plot showing differential classification\n(at least 10% simulated scores mismatch)",
     )
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
+def _(mo, uncertainties):
+    mo.callout(
+        mo.md(rf"""
+    Figure 3. Jaccard index plot showing differential classification for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %) (at least 10% simulated scores mismatch). The Intermediate group's classification is sensitive to measurement noise, leading to 100% reclassification ($J = 0$) when uncertainty reaches approximately ~15%. This highlights the instability in classification for the intermediate category due to proximity to decision boundaries.
+
+    """)
+    )
+    return
+
+
+@app.cell(hide_code=True)
 def _(generate_waterfall_plot, get_gender_pred_labels, pd, product):
     def plot_waterfall_plot_for_gender_data(
         *,
@@ -1095,31 +1082,6 @@ def _(generate_waterfall_plot, get_gender_pred_labels, pd, product):
             legend_title="Simulated score\n   predictions",
         )
 
-    return (plot_waterfall_plot_for_gender_data,)
-
-
-@app.cell
-def _(
-    gt_probs,
-    pathos_2,
-    plot_waterfall_plot_for_gender_data,
-    res,
-    single_thres,
-):
-    plot_waterfall_plot_for_gender_data(
-        threshold=single_thres,
-        probs=gt_probs,
-        pathos_df=pathos_2,
-        pred_labels=res.single_thres_pred_labels[5],
-        uncertainty=5,
-    )
-    plot_waterfall_plot_for_gender_data(
-        threshold=single_thres,
-        probs=gt_probs,
-        pathos_df=pathos_2,
-        pred_labels=res.single_thres_pred_labels[25],
-        uncertainty=25,
-    )
     return
 
 

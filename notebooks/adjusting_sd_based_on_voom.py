@@ -20,7 +20,7 @@ def _():
     import sys
     from pathlib import Path
 
-    sys.path.insert(0, str(Path.cwd().parent.resolve()))
+    sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
     return (Path,)
 
 
@@ -80,10 +80,9 @@ def _(pathos):
 @app.cell(hide_code=True)
 def _(np, raw_data):
     patients_df = raw_data[~raw_data.loc[:, "Coeff"].isnull()]
-    coefficients = np.nan_to_num(np.array(patients_df.loc[:, "Coeff"]))
     patients_df = patients_df.filter(regex="^\\d+")
     genes = patients_df.index.values
-    return coefficients, genes, patients_df
+    return genes, patients_df
 
 
 @app.cell(hide_code=True)
@@ -241,7 +240,7 @@ def _(patients_df_1):
 
 
 @app.cell(hide_code=True)
-def _(coefficients, mean_TPM, means, num_patients, patients_df_1):
+def _(mean_TPM, means, num_patients, patients_df_1):
     patients_df_2 = patients_df_1[means >= mean_TPM]
     patients_df_2 = patients_df_2.iloc[:, :num_patients]
     return (patients_df_2,)
