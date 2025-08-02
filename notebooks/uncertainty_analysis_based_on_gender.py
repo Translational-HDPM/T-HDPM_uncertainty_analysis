@@ -640,7 +640,12 @@ def _(mo):
 
     4. Provide repeatability precision profile for the Score: values of the mean score $Score^* _{mean}$ with the SD and %CV from the previous step for all possible combinations of $U$ and $V$ for which precision profiles are available. 
 
-    As described in the guidance above, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation), we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$. However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed in which the standard deviation (technical variation) decreases with increasing TPM values to an asymptote. (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf)).
+    where $\mu$ and $\sigma$ are mean and standard deviation of the $log_2 (1+TPM)$ dataset, respectively and $a$, $b$, $c$ are constants.
+
+    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 6.0. 
+
+    ///note
+    The values of $a$, $b$, $c$ and $scaling factor$ have been set without empirical calculations due to lack of sufficient technical replicate data. Ideally, if technical replicate data is available, these parameters should be set empirically.
     """
     )
     return
