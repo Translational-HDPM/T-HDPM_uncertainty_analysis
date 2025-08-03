@@ -11,6 +11,10 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from mpl_toolkits.axes_grid1.inset_locator import (
+    inset_axes,
+    mark_inset,
+)
 from sklearn.metrics import confusion_matrix, jaccard_score
 
 from .dtypes import NumpyFloat32Array1D, NumpyFloat32Array2D
@@ -846,7 +850,7 @@ def plot_jaccard_index_plot(
             raise ValueError(
                 f"Difference in linestyle between single and dual threshold plots for label '{label}'"
             )
-    fig, axs = plt.subplots(figsize=(16, 6), nrows=1, ncols=2, sharex=True, sharey=True)
+    fig, axs = plt.subplots(figsize=(16, 7), nrows=1, ncols=2, sharex=True, sharey=True)
     plt.subplot(121)
     jac_idx_df = calculate_jaccard_index(
         labels=list(labels_dict_single_thres.keys()),
@@ -896,7 +900,7 @@ def plot_jaccard_index_plot(
         ncol=2,
         bbox_to_anchor=(0.5, 0.03),
     )
-    fig.suptitle(figure_title)
+    fig.suptitle(figure_title, fontsize=14)
     fig.show()
     if save:
         fig.savefig(f"{figure_title}.png")
@@ -905,39 +909,59 @@ def plot_jaccard_index_plot(
 
 def plot_differential_classification_results(
     *,
-    gt_labels: pd.Series,
-    one_sim_mismatch_pred_labels_dict: dict[int, pd.Series],
-    ten_pct_sim_mismatch_pred_labels_dict: dict[int, pd.Series],
-    labels_dict: dict[list[str], str],
+    labels_dict_single_thres: dict[str, str],
+    labels_dict_dual_thres: dict[str, str],
+    gt_labels_single_thres: pd.Series,
+    gt_labels_dual_thres: pd.Series,
+    pred_labels_dict_single_thres: dict[int, pd.Series],
+    pred_labels_dict_dual_thres: dict[int, pd.Series],
+    single_thres_plot_title: str,
+    dual_thres_plot_title: str,
     figure_title: str,
+    save: bool = False,
 ) -> Figure:
     """
     Plots differential classification results for single and dual threshold scenarios.
 
-    This function generates a two-subplot figure displaying the percentage of
+    Generates a figure with two subplots, each showing the percentage of
     differentially classified subjects for various uncertainty levels, based
     on single and dual threshold scenarios.
 
     Parameters
     ----------
-    gt_labels
-        A pandas Series containing the ground truth labels. These labels should
-        be integers corresponding to the indices of the `labels` list.
-    one_sim_mismatch_pred_labels_dict
-        A dictionary where keys are uncertainty levels (integers) and values
-        are pandas Series containing predicted labels for the "at least 1
-        simulation mismatch" scenario.
-    ten_pct_sim_mismatch_pred_labels_dict
-        A dictionary where keys are uncertainty levels (integers) and values
-        are pandas Series containing predicted labels for the "at least 10%
-        of simulations mismatch" scenario.
-    labels_dict
-        A dictionary where the keys represent the names of the classes and the
-        corresponding values are the line styles in the lineplot. The order of
-        these labels (in the keys) should correspond to the integer labels used in the
-        prediction dictionaries.
+    labels_dict_single_thres
+        Dictionary mapping class labels to plot colors for the single-threshold
+        (left) plot. e.g., `{'AD': 'b', 'NCI': 'r'}`.
+    labels_dict_dual_thres
+        Dictionary mapping class labels to plot colors for the dual-threshold
+        (right) plot. Must have consistent colors with `labels_dict_single_thres`.
+    gt_labels_single_thres
+        A pandas Series containing the ground truth labels for the
+        single-threshold scenario.
+    gt_labels_dual_thres
+        A pandas Series containing the ground truth labels for the
+        dual-threshold scenario.
+    pred_labels_dict_single_thres
+        Dictionary mapping uncertainty levels (int) to predicted labels
+        (pd.Series) for the single-threshold scenario.
+    pred_labels_dict_dual_thres
+        Dictionary mapping uncertainty levels (int) to predicted labels
+        (pd.Series) for the dual-threshold scenario.
+    single_thres_plot_title
+        The title for the left subplot (single-threshold).
+    dual_thres_plot_title
+        The title for the right subplot (dual-threshold).
     figure_title
         The main title for the entire figure.
+    save
+        If True, the figure is saved to a PNG file named after the
+        `figure_title`. Default is False.
+
+    Raises
+    ------
+    ValueError
+        If a class label has a different color mapping between
+        `labels_dict_single_thres` and `labels_dict_dual_thres`.
 
     Returns
     -------
@@ -948,33 +972,45 @@ def plot_differential_classification_results(
     --------
     get_differential_classification : Calculates the underlying data for the plots.
     """
-    label_counts = {
-        label: (gt_labels == i).sum() for i, label in enumerate(labels_dict.keys())
-    }
-    fig = plt.figure(figsize=(16, 6))
-    fig, axs = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(16, 6))
-    plt.subplot(121)
+    for label in labels_dict_single_thres:
+        if labels_dict_single_thres[label] != labels_dict_dual_thres[label]:
+            raise ValueError(
+                f"Difference in linestyle between single and dual threshold plots for label '{label}'"
+            )
+    fig, axs = plt.subplots(figsize=(16, 7), nrows=1, ncols=2, sharex=True, sharey=True)
 
-    results = get_differential_classification(
-        gt_labels,
-        one_sim_mismatch_pred_labels_dict,
-        list(labels_dict.keys()),
-    )
-    for cat in results.columns:
-        plt.plot(results.index, results.loc[:, cat], label=cat, color=labels_dict[cat])
-    plt.title("At least 1 simulation mismatch")
-
-    plt.subplot(122)
-    results = get_differential_classification(
-        gt_labels,
-        ten_pct_sim_mismatch_pred_labels_dict,
-        list(labels_dict.keys()),
-    )
-    for cat in results.columns:
-        plt.plot(results.index, results.loc[:, cat], label=cat, color=labels_dict[cat])
-    plt.title(
-        "At least 10% of simulations mismatch",
-    )
+    scenarios = ["single threshold", "dual threshold"]
+    label_counts_dict = dict.fromkeys(scenarios)
+    for i, (labels_dict, gt_labels, pred_labels_dict, plot_title) in enumerate(
+        [
+            (
+                labels_dict_single_thres,
+                gt_labels_single_thres,
+                pred_labels_dict_single_thres,
+                single_thres_plot_title,
+            ),
+            (
+                labels_dict_dual_thres,
+                gt_labels_dual_thres,
+                pred_labels_dict_dual_thres,
+                dual_thres_plot_title,
+            ),
+        ]
+    ):
+        plt.subplot(1, 2, i + 1)
+        label_counts_dict[scenarios[i]] = {
+            label: (gt_labels == i).sum() for i, label in enumerate(labels_dict.keys())
+        }
+        results = get_differential_classification(
+            gt_labels,
+            pred_labels_dict,
+            list(labels_dict.keys()),
+        )
+        for cat in results.columns:
+            plt.plot(
+                results.index, results.loc[:, cat], label=cat, color=labels_dict[cat]
+            )
+        plt.title(plot_title)
 
     leg_handles, leg_labels = plt.gca().get_legend_handles_labels()
     fig.legend(
@@ -993,18 +1029,135 @@ def plot_differential_classification_results(
         ha="center",
         rotation="vertical",
     )
-    fig.suptitle(figure_title)
-    fig.text(
-        0.5,
-        -0.06,
-        "Classifier predictions: "
-        + ", ".join([f"{label_counts[label]} {label}" for label in label_counts])
-        + " subjects",
-        ha="center",
-        va="center",
-        bbox=dict(
-            boxstyle="round,pad=0.5", facecolor="white", edgecolor="black", alpha=0.8
-        ),
+    fig.suptitle(figure_title, fontsize=14)
+    for i, scenario in enumerate(scenarios):
+        label_counts = label_counts_dict[scenario]
+        fig.text(
+            0.5,
+            -0.06 * (i + 1),
+            f"Classifier predictions ({scenario}): "
+            + ", ".join([f"{label_counts[label]} {label}" for label in label_counts])
+            + " subjects",
+            ha="center",
+            va="center",
+            bbox=dict(
+                boxstyle="round,pad=0.5",
+                facecolor="white",
+                edgecolor="black",
+                alpha=0.8,
+            ),
+        )
+    return fig
+
+
+def plot_histogram_of_simulated_and_real_subject_probability_scores(
+    gt_probs: NumpyFloat32Array1D,
+    pred_probs: NumpyFloat32Array1D,
+    uncertainty: int,
+    plot_inset: bool = True,
+) -> Figure:
+    """Plot histograms of simulated and real subject probability scores.
+
+    This function generates a figure with two histograms: one for classifier
+    (`gt_probs`) probability scores (from unsimulated subject data) and
+    one for probability scores of the classifier for simulated subject data.
+    It also includes a zoomed-in inset plot for a detailed view of a specific
+    probability range.
+
+    Parameters
+    ----------
+    gt_probs
+        A 1D NumPy array containing the classifier probability
+        scores for real subjects.
+    pred_probs
+        A 1D NumPy array containing the classifier probability
+        scores for simulated subjects.
+    uncertainty
+        The percentage uncertainty value associated with the simulated data.
+    plot_inset
+        Whether to plot an inset of the region between probabilities 0.1 and 0.9.
+        Defaults to True.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+        A Matplotlib Figure object containing the generated histograms and inset.
+    """
+    nbins = 30
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    sns.histplot(
+        pred_probs,
+        color="b",
+        alpha=0.3,
+        fill=True,
+        bins=nbins,
+        stat="density",
+        label="Simulated subjects",
+        ax=ax,
     )
-    fig.show()
+    sns.histplot(
+        gt_probs,
+        color="r",
+        alpha=0.3,
+        fill=True,
+        bins=nbins,
+        stat="density",
+        label="Real subjects",
+        ax=ax,
+    )
+    plt.xlabel("Classifier score (probability)")
+    plt.ylabel("Density")
+    plt.legend(loc="best")
+    plt.title(
+        f"Histogram of probability scores from \nsimulated and real subjects at {uncertainty}% simulated uncertainty."
+    )
+    if plot_inset:
+        # Make zoomed inset
+        inset_axs = inset_axes(ax, loc="center", width="50%", height="50%")
+        sns.histplot(
+            pred_probs,
+            color="b",
+            alpha=0.3,
+            fill=True,
+            bins=nbins,
+            stat="density",
+            label="Simulated subjects",
+            ax=inset_axs,
+        )
+        sns.histplot(
+            gt_probs,
+            color="r",
+            alpha=0.3,
+            fill=True,
+            bins=nbins,
+            stat="density",
+            label="Real subjects",
+            ax=inset_axs,
+        )
+        x_min, x_max = 0.1, 0.9
+        hist_data, bins = np.histogram(
+            pred_probs,
+            bins=nbins,
+            density=True,
+        )
+        y_min, y_max = (
+            0,
+            1.5 * hist_data[(bins[:-1] >= x_min) & (bins[:-1] <= x_max)].max(),
+        )
+        inset_axs.set_xlim(x_min, x_max)
+        inset_axs.set_ylim(y_min, y_max)
+
+        plt.xlabel("")
+        plt.ylabel("")
+
+        mark_inset(
+            ax,
+            inset_axs,
+            loc1=1,
+            loc2=2,
+            fc="none",
+            ec="gray",
+        )
+
     return fig

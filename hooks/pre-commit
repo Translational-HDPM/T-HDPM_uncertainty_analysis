@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/usr/bin/bash
 #
 # A git hook to run linting and formatting on Python scripts in this
 # repository.
@@ -22,12 +22,17 @@ set -e
 # Get a list of files currently staged for committing
 FOR_COMMIT=$(git diff --name-only --cached .)
 
-# Lint using ruff
-ruff check .
+# Check each staged file using ruff
+for file in $FOR_COMMIT; do
+    if [ -f "$file" ] && [[ "$file" = *".py" ]]; then
+        # Lint using ruff
+        ruff check "$file"
 
-# Format using ruff
-ruff format .
-ruff check --select I --fix
+        # Format using ruff
+        ruff format "$file"
+        ruff check --select I --fix "$file"
+    fi
+done
 
 # Re-stage formatted files
 for file in $FOR_COMMIT; do
