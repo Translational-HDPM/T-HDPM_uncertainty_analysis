@@ -6,9 +6,7 @@ app = marimo.App()
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""## Modeling of Measurement Uncertainty of a high-dimensional RNA-Seq classifier of cell-free mRNA for Alzheimer’s Disease: Effect of Gender on Differential classification"""
-    )
+    mo.md(r"""## Modeling of Measurement Uncertainty of a high-dimensional RNA-Seq classifier of cell-free mRNA for Alzheimer’s Disease: Effect of Gender on Differential classification""")
     return
 
 
@@ -223,9 +221,7 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo, patients_df, patients_df_2):
-    mo.md(
-        rf"""The raw dataset contains gene expression data in the form of TPM values for subjects (including technical replicates), along with the coefficients of the classifier. In addition, we also utilize original disease categories (pathology) that the patients belong to. The dataset contains technical replicates for a subset ({patients_df.shape[1] - patients_df_2.shape[1]} samples) of {patients_df.shape[1]} biological samples. For this analysis, these technical replicates were averaged to create a single expression profile per biological subject. Our subsequent simulation aims to re-introduce a plausible model of this technical variability."""
-    )
+    mo.md(rf"""The raw dataset contains gene expression data in the form of TPM values for subjects (including technical replicates), along with the coefficients of the classifier. In addition, we also utilize original disease categories (pathology) that the patients belong to. The dataset contains technical replicates for a subset ({patients_df.shape[1] - patients_df_2.shape[1]} samples) of {patients_df.shape[1]} biological samples. For this analysis, these technical replicates were averaged to create a single expression profile per biological subject. Our subsequent simulation aims to re-introduce a plausible model of this technical variability.""")
     return
 
 
@@ -297,9 +293,7 @@ def _(genes, pathos_1, patients_df):
 
 @app.cell(hide_code=True)
 def _(mo, patients_df):
-    mo.md(
-        rf"""Following is a summary of the number of patients in each disease category in the dataset. For each patient, the dataset comprises of TPM values from {patients_df.shape[0]} genes."""
-    )
+    mo.md(rf"""Following is a summary of the number of patients in each disease category in the dataset. For each patient, the dataset comprises of TPM values from {patients_df.shape[0]} genes.""")
     return
 
 
@@ -317,9 +311,7 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used. The objective of removing genes is to filter out any genes with low TPM values that affect the predictions of the classifier by adding noise."""
-    )
+    mo.md(r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used. The objective of removing genes is to filter out any genes with low TPM values that affect the predictions of the classifier by adding noise.""")
     return
 
 
@@ -348,9 +340,7 @@ def _(mo, patients_df_1, patients_df_2):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""### Selecting the Probability threshold based on Sensitivity and Specificity"""
-    )
+    mo.md(r"""### Selecting the Probability threshold based on Sensitivity and Specificity""")
     return
 
 
@@ -518,9 +508,7 @@ def _(ad_npv, ad_ppv, ad_sens, ad_spec, mo, single_thres):
 
 @app.cell(hide_code=True)
 def _(mo, single_thres):
-    mo.md(
-        rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. However, if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold and upper thresholds farther apart from each other, but in the vicinity of the calculated value of the dichotomous decision threshold ({single_thres:.4f})."""
-    )
+    mo.md(rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. However, if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold and upper thresholds farther apart from each other, but in the vicinity of the calculated value of the dichotomous decision threshold ({single_thres:.4f}).""")
     return
 
 
