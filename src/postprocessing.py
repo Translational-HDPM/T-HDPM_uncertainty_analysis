@@ -1054,6 +1054,7 @@ def plot_histogram_of_simulated_and_real_subject_probability_scores(
     gt_probs: NumpyFloat32Array1D,
     pred_probs: NumpyFloat32Array1D,
     uncertainty: int,
+    plot_inset: bool = True,
 ) -> Figure:
     """Plot histograms of simulated and real subject probability scores.
 
@@ -1065,14 +1066,17 @@ def plot_histogram_of_simulated_and_real_subject_probability_scores(
 
     Parameters
     ----------
-    gt_probs : NumpyFloat32Array1D
+    gt_probs
         A 1D NumPy array containing the classifier probability
         scores for real subjects.
-    pred_probs : NumpyFloat32Array1D
+    pred_probs
         A 1D NumPy array containing the classifier probability
         scores for simulated subjects.
-    uncertainty : int
+    uncertainty
         The percentage uncertainty value associated with the simulated data.
+    plot_inset
+        Whether to plot an inset of the region between probabilities 0.1 and 0.9.
+        Defaults to True.
 
     Returns
     -------
@@ -1108,51 +1112,52 @@ def plot_histogram_of_simulated_and_real_subject_probability_scores(
     plt.title(
         f"Histogram of probability scores from \nsimulated and real subjects at {uncertainty}% simulated uncertainty."
     )
-    # Make zoomed inset
-    inset_axs = inset_axes(ax, loc="center", width="50%", height="50%")
-    sns.histplot(
-        pred_probs,
-        color="b",
-        alpha=0.3,
-        fill=True,
-        bins=nbins,
-        stat="density",
-        label="Simulated subjects",
-        ax=inset_axs,
-    )
-    sns.histplot(
-        gt_probs,
-        color="r",
-        alpha=0.3,
-        fill=True,
-        bins=nbins,
-        stat="density",
-        label="Real subjects",
-        ax=inset_axs,
-    )
-    x_min, x_max = 0.1, 0.9
-    hist_data, bins = np.histogram(
-        pred_probs,
-        bins=nbins,
-        density=True,
-    )
-    y_min, y_max = (
-        0,
-        1.5 * hist_data[(bins[:-1] >= x_min) & (bins[:-1] <= x_max)].max(),
-    )
-    inset_axs.set_xlim(x_min, x_max)
-    inset_axs.set_ylim(y_min, y_max)
+    if plot_inset:
+        # Make zoomed inset
+        inset_axs = inset_axes(ax, loc="center", width="50%", height="50%")
+        sns.histplot(
+            pred_probs,
+            color="b",
+            alpha=0.3,
+            fill=True,
+            bins=nbins,
+            stat="density",
+            label="Simulated subjects",
+            ax=inset_axs,
+        )
+        sns.histplot(
+            gt_probs,
+            color="r",
+            alpha=0.3,
+            fill=True,
+            bins=nbins,
+            stat="density",
+            label="Real subjects",
+            ax=inset_axs,
+        )
+        x_min, x_max = 0.1, 0.9
+        hist_data, bins = np.histogram(
+            pred_probs,
+            bins=nbins,
+            density=True,
+        )
+        y_min, y_max = (
+            0,
+            1.5 * hist_data[(bins[:-1] >= x_min) & (bins[:-1] <= x_max)].max(),
+        )
+        inset_axs.set_xlim(x_min, x_max)
+        inset_axs.set_ylim(y_min, y_max)
 
-    plt.xlabel("")
-    plt.ylabel("")
+        plt.xlabel("")
+        plt.ylabel("")
 
-    mark_inset(
-        ax,
-        inset_axs,
-        loc1=1,
-        loc2=2,
-        fc="none",
-        ec="gray",
-    )
+        mark_inset(
+            ax,
+            inset_axs,
+            loc1=1,
+            loc2=2,
+            fc="none",
+            ec="gray",
+        )
 
     return fig
