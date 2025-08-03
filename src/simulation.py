@@ -253,7 +253,11 @@ def simulate_sampling_experiment(
     _means, _stds = tpm_df.mean(axis=1), tpm_df.std(axis=1)
 
     # Generate random number seed sequence for seeds for sampler
-    seed_seq = np.random.SeedSequence([worker_id, seed])
+    seed_seq = (
+        np.random.SeedSequence([worker_id, seed])
+        if seed is not None
+        else np.random.SeedSequence()
+    )
     for j in range(num_patients):
         samples = np.zeros((n_features, n_samples))
         patient_id = tpm_df.columns[j]
