@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.15"
+__generated_with = "0.14.16"
 app = marimo.App()
 
 
@@ -78,7 +78,7 @@ def _(pathos):
 
 
 @app.cell(hide_code=True)
-def _(np, raw_data):
+def _(raw_data):
     patients_df = raw_data[~raw_data.loc[:, "Coeff"].isnull()]
     patients_df = patients_df.filter(regex="^\\d+")
     genes = patients_df.index.values
