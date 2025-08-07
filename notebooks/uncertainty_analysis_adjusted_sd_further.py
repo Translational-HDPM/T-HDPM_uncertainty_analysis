@@ -14,10 +14,14 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
+    mo.md(r"""### Motivation""")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
     mo.md(
         r"""
-    ### Motivation
-
     Precision Medicine recognizes common complex diseases are actually multiple ‘endotypes’ with different underlying pathology that present with a similar phenotype. Rather than discrete stages of disease, common complex diseases represent a continuum of pathology. End stage common complex disease may not include a complete catalog of biomarkers for earlier points in pathology continuum. Complexity of endotypes presents unique regulatory challenges requiring data simulation to model reproducibility. Translational Diagnostics are transitioning from single analyte assays to multi-analyte, machine learning (ML) classifiers.
 
     For the use of such 'clinical-grade' ML predictors, it is recommended in the literature to document any sources of variation (aleatoric uncertainty) that affect reproducibility and estimate the variability of the prediction. In this context, methods for estimating ‘clinical-grade’ measurement uncertainty can:
@@ -33,13 +37,21 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
-    ### Goal
+    mo.md(r"""### Goal""")
+    return
 
-    This work demonstrates a methodology for estimating the impact of plausible, empirically-informed technical measurement uncertainty on the performance of high-dimensional RNA-Seq classifiers, in benchmark case for Alzheimer's Disease, using Monte Carlo simulations. We simulate the assay variation for each gene independently for a given subject at different levels of relative standard deviation (RSD) of Transcripts Per Million (TPM) values (gene differential expression levels).
-    """
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""This work demonstrates a methodology for estimating the impact of plausible, empirically-informed technical measurement uncertainty on the performance of high-dimensional RNA-Seq classifiers, in benchmark case for Alzheimer's Disease, using Monte Carlo simulations. We simulate the assay variation for each gene independently for a given subject at different levels of relative standard deviation (RSD) of Transcripts Per Million (TPM) values (gene differential expression levels)."""
     )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""### Measurement Uncertainty: Regulatory Setting""")
     return
 
 
@@ -47,8 +59,6 @@ def _(mo):
 def _(mo):
     mo.md(
         r"""
-    ### Measurement Uncertainty: Regulatory Setting
-
     Despite significant advances in diagnostic testing, only a few guidelines have been developed for interpretation of measurement uncertainty in medical laboratories, including
 
     - Clinical Laboratory Standards Institute (CLSI)
@@ -150,6 +160,7 @@ def _(mo):
     1. **Mean TPM**: When we filter genes for analysis with a reduced feature set, we drop genes for which the mean TPM is below this cutoff. (details included later)
     2. **Range of percent uncertainty values to simulate**: List of values taken from literature reported studies representing different overall noise scenario, used as a percentage to scale the baseline technical standard deviation calculated from the TPM value. 
     3. **Number of samples**: Number of Monte Carlo samples to simulate for each subject
+    4. **How to aggregate replicates**: How to aggregate TPM values from multiple technical replicates for a given subject. Default is "average", i.e. the average of multiple TPM values will be taken.
     """
     )
     return
@@ -170,6 +181,7 @@ def _(
     mean_tpm_slider,
     n_samples_slider,
     patients_df,
+    replicate_aggregation_choice_dropdown,
     uncertainty_range_slider,
 ):
     n_samples = (
@@ -185,9 +197,19 @@ def _(
     mean_TPM = (
         mean_tpm_slider.value
     )  # When we filter genes for analysis with a reduced feature set,
-    # we drop genes for which the mean TPM is below this cutoff\
+    # we drop genes for which the mean TPM is below this cutoff
+    collapse_replicates_by = (
+        replicate_aggregation_choice_dropdown.value
+    )  # How to aggregate TPM values of replicates.
+    # Choices include average, maximum and minimum
     num_patients = patients_df.shape[1]
-    return mean_TPM, n_samples, num_patients, uncertainties
+    return (
+        collapse_replicates_by,
+        mean_TPM,
+        n_samples,
+        num_patients,
+        uncertainties,
+    )
 
 
 @app.cell(hide_code=True)
@@ -211,17 +233,34 @@ def _(mo):
         label="Range of percent uncertainty values to simulate",
         show_value=True,
     )
-    return mean_tpm_slider, n_samples_slider, uncertainty_range_slider
+    replicate_aggregation_choice_dropdown = mo.ui.dropdown(
+        ["average", "minimum", "maximum"],
+        value="average",
+        label="Collapse replicates by",
+    )
+    return (
+        mean_tpm_slider,
+        n_samples_slider,
+        replicate_aggregation_choice_dropdown,
+        uncertainty_range_slider,
+    )
 
 
 @app.cell(hide_code=True)
-def _(mean_tpm_slider, mo, n_samples_slider, uncertainty_range_slider):
+def _(
+    mean_tpm_slider,
+    mo,
+    n_samples_slider,
+    replicate_aggregation_choice_dropdown,
+    uncertainty_range_slider,
+):
     mo.callout(
         mo.vstack(
             [
                 mean_tpm_slider,
                 n_samples_slider,
                 uncertainty_range_slider,
+                replicate_aggregation_choice_dropdown,
             ]
         )
     )
@@ -297,10 +336,15 @@ def _(np, raw_data):
 
 
 @app.cell(hide_code=True)
-def _(genes, pathos_1, patients_df):
-    grouped_cols = patients_df.columns.str.split("-").str[0]
-    grouped = patients_df.groupby(grouped_cols, axis=1)
-    patients_df_1 = grouped.apply(lambda x: x.mean(axis=1)).reset_index(drop=True)
+def _(collapse_replicates_by, genes, pathos_1, patients_df):
+    _grouped_cols = patients_df.columns.str.split("-").str[0]
+    _grouped = patients_df.groupby(_grouped_cols, axis=1)
+    if collapse_replicates_by == "average":
+        patients_df_1 = _grouped.apply(lambda x: x.mean(axis=1)).reset_index(drop=True)
+    elif collapse_replicates_by == "maximum":
+        patients_df_1 = _grouped.apply(lambda x: x.max(axis=1)).reset_index(drop=True)
+    elif collapse_replicates_by == "minimum":
+        patients_df_1 = _grouped.apply(lambda x: x.min(axis=1)).reset_index(drop=True)
     patients_df_1.index = genes
 
     _patients_df_cols_not_in_pathos = []
@@ -366,291 +410,6 @@ def _(mo, patients_df_1, patients_df_2):
         mo.md(
             f"We dropped {patients_df_1.shape[0] - patients_df_2.shape[0]} out of {patients_df_1.shape[0]} genes, i.e. {(patients_df_1.shape[0] - patients_df_2.shape[0]) / patients_df_1.shape[0] * 100.0:.2f}% of the genes."
         )
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""### Additional analysis on the Low TPM genes""")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    #### Distribution of TPM values
-
-    We want to check the distribution of simulated TPM values for low TPM genes in patients diagnosed as NCI. 
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(coefficients, mean_TPM, means, pathos_2, patients_df_1, patients_df_2):
-    low_tpm_patients_df = patients_df_1[means < mean_TPM]
-    low_tpm_coefficients = coefficients[means < mean_TPM]
-    _ad_patients = (pathos_2[pathos_2["Disease"] == "AD"]).index
-    low_tpm_patients_df = low_tpm_patients_df.drop(
-        columns=list(_ad_patients)
-    )  # Keep only NCI subjects but low TPM genes
-    full_set_patients_df = patients_df_1.drop(
-        columns=list(_ad_patients)
-    )  # Keep only NCI subjects but all genes
-    filtered_set_patients_df = patients_df_2.drop(
-        columns=list(_ad_patients)
-    )  # Keep only NCI subjects but high TPM genes
-    return (
-        filtered_set_patients_df,
-        full_set_patients_df,
-        low_tpm_coefficients,
-        low_tpm_patients_df,
-    )
-
-
-@app.cell(hide_code=True)
-def _(NumpyFloat32Array1D, np, pd):
-    from typing import Callable
-
-    from matplotlib.figure import Figure
-
-    from src.simulation import simulate_sampling_experiment
-
-    def generate_samples(
-        tpm_df: pd.DataFrame,
-        sampler: Callable[[float, float, int], NumpyFloat32Array1D],
-        uncertainty: int,
-        n_samples: int,
-        seed: int,
-    ) -> NumpyFloat32Array1D:
-        n_features, num_patients = tpm_df.shape[0], tpm_df.shape[1]
-        # Generate random number seed sequence for seeds for sampler
-        seed_seq = np.random.SeedSequence([654, seed])
-        all_samples = []
-        for j in range(num_patients):
-            samples = np.zeros((n_features, n_samples))
-
-            # Spawn n_feature seeds, one seed per feature
-            seeds = seed_seq.spawn(n_features)
-            for i in range(n_features):
-                mean = tpm_df.iloc[i, j]
-
-                # Generate Monte Carlo samples
-                samples[i] = sampler(mean, uncertainty / 100, n_samples, seeds[i])
-            all_samples.append(samples)
-        return np.hstack(all_samples).ravel()
-
-    return Figure, generate_samples, simulate_sampling_experiment
-
-
-@app.cell(hide_code=True)
-def _(
-    antilogit_classifier_score,
-    low_tpm_coefficients,
-    low_tpm_patients_df,
-    np,
-    pd,
-):
-    _z_scores = (
-        low_tpm_patients_df.values
-        - low_tpm_patients_df.mean(axis=1).values.reshape(-1, 1)
-    ) / low_tpm_patients_df.std(axis=1).values.reshape(-1, 1)
-    low_tpm_gt_probs = antilogit_classifier_score(
-        np.sum(low_tpm_coefficients[:, np.newaxis] * _z_scores, axis=0)
-    )
-    low_tpm_gt_probs = pd.Series(
-        index=low_tpm_patients_df.columns, data=low_tpm_gt_probs
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(Figure, NumpyFloat32Array1D, plt, sns):
-    def plot_histogram(
-        data_1: NumpyFloat32Array1D,
-        data_2: NumpyFloat32Array1D,
-        *,
-        xlabel: str,
-        label_1: str,
-        label_2: str,
-        fig_title: str,
-        uncertainty: int,
-    ) -> Figure:
-        nbins = 30
-        fig, ax = plt.subplots(figsize=(12, 8))
-        sns.histplot(
-            data_1,
-            color="b",
-            alpha=0.3,
-            fill=True,
-            bins=nbins,
-            stat="density",
-            label=label_1,
-            ax=ax,
-        )
-        sns.histplot(
-            data_2,
-            color="r",
-            alpha=0.3,
-            fill=True,
-            bins=nbins,
-            stat="density",
-            label=label_2,
-            ax=ax,
-        )
-        plt.xlabel(xlabel)
-        plt.ylabel("Density")
-        plt.legend(loc="best")
-        plt.title(
-            f"Histogram of {fig_title} from \n{label_1} and {label_2} at {uncertainty}% simulated uncertainty."
-        )
-        return fig
-
-    return (plot_histogram,)
-
-
-@app.cell(hide_code=True)
-def _(
-    generate_samples,
-    low_tpm_patients_df,
-    master_seed,
-    n_samples,
-    plt,
-    sampler,
-    sns,
-    uncertainties,
-):
-    _uncert = uncertainties[-1]
-    low_tpm_patients_samples = generate_samples(
-        low_tpm_patients_df, sampler, uncertainties[-1], n_samples, master_seed
-    )
-    _nbins = 30
-    _fig, _ax = plt.subplots(figsize=(12, 8))
-    sns.histplot(
-        low_tpm_patients_samples,
-        color="b",
-        alpha=0.3,
-        fill=True,
-        bins=_nbins,
-        stat="density",
-        ax=_ax,
-    )
-    plt.xlabel("TPM values")
-    plt.ylabel("Density")
-    plt.title("Histogram of simulated TPM values from low TPM genes of NCI patients")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    #### Does removing low TPM genes increase differential classification of NCI subjects?
-
-    We want to test the hypothesis that removing them causes increased differential classification of patients in the NCI category.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(
-    coefficients,
-    coefficients_1,
-    dual_thres_high,
-    dual_thres_low,
-    filtered_set_patients_df,
-    full_set_patients_df,
-    master_seed,
-    n_samples,
-    plot_histogram,
-    sampler,
-    simulate_sampling_experiment,
-    single_thres,
-    uncertainties,
-):
-    _uncert = uncertainties[-1]
-    _, _, _, _, _, unfiltered_res = simulate_sampling_experiment(
-        full_set_patients_df,
-        sampler,
-        dual_thres_1=dual_thres_low,
-        dual_thres_2=dual_thres_high,
-        single_thres=single_thres,
-        diff_class_lim=int(0.1 * n_samples),
-        uncertainty=_uncert,
-        n_samples=n_samples,
-        coefficients=coefficients,
-        seed=master_seed,
-    )
-    _, _, _, _, _, filtered_res = simulate_sampling_experiment(
-        filtered_set_patients_df,
-        sampler,
-        dual_thres_1=dual_thres_low,
-        dual_thres_2=dual_thres_high,
-        single_thres=single_thres,
-        diff_class_lim=int(0.1 * n_samples),
-        uncertainty=_uncert,
-        n_samples=n_samples,
-        coefficients=coefficients_1,
-        seed=master_seed,
-    )
-
-    plot_histogram(
-        filtered_res,
-        unfiltered_res,
-        xlabel="Classifier scores (probabilities)",
-        label_1="Filtered dataset",
-        label_2="Unfiltered dataset",
-        fig_title="classifier scores",
-        uncertainty=_uncert,
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    #### What percent of TPM values in low TPM genes among NCI subjects are "Null" values?
-
-    In the original dataset, the TPM values that were missing must have been imputed with 0 to avoid calculation errors. Since the present dataset actually does not have null values, but while generation had all TPM values less than 5 removed, we *assume* that **all TPM values that are zero were previously missing or were considered insignificant**. Getting the proportion of such values for every low TPM gene within NCI patients will help us pinpoint the degree of noise they add to the data.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(low_tpm_patients_df):
-    _percent_missing_low_tpm_genes = (
-        low_tpm_patients_df.apply(lambda x: x == 0).sum(axis=1)
-        / low_tpm_patients_df.shape[1]
-        * 100
-    )  # Convert to %
-    _percent_missing_low_tpm_genes.sort_values(ascending=False)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    #### How many of the low TPM genes had positive coefficients and negative coefficients?
-
-    We want to see if removing the low TPM genes removes an equal number of genes with positive and negative coefficients.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(low_tpm_coefficients, mo):
-    mo.md(
-        rf"""
-    - Number of negative coefficient genes = {(low_tpm_coefficients < 0).sum()}
-    - Number of positive coefficient genes = {(low_tpm_coefficients >= 0).sum()}
-    """
     )
     return
 
@@ -782,6 +541,7 @@ def _(ad_sens_spec_df, np, using_dummy_data):
         ad_sens_spec_df.loc[_filt, "specificity"].values[0] * 100
     )  # For single threshold, roughly where sensitivity = specificity
     single_thres = ad_sens_spec_df.loc[_filt, "threshold"].values[0] / 100
+    single_thres = max(0.03, single_thres)  # Set a floor of 0.03 for the threshold
     # print(f"{single_thres=}")
     return single_thres, target_ad_specificity
 
@@ -828,7 +588,7 @@ def _(ad_npv, ad_ppv, ad_sens, ad_spec, mo, single_thres):
 @app.cell(hide_code=True)
 def _(mo, single_thres):
     mo.md(
-        rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. But if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold and upper thresholds farther apart from each other, but in the vicinity of the calculated value of the dichotomous decision threshold ({single_thres:.4f})."""
+        rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. But if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold equal to the single threshold ({single_thres:.4f}) as calculated before, and upper threshold at few steps from the lower threshold."""
     )
     return
 
@@ -841,15 +601,15 @@ def _(mo):
         step=0.005,
         value=0.06,
         show_value=True,
-        label="Step to calculate lower and upper thresholds from the dichotomous threshold.",
+        label="Step to set the upper threshold away from the lower threshold.",
     )
-    threshold_step_slider
+    mo.callout(threshold_step_slider)
     return (threshold_step_slider,)
 
 
 @app.cell(hide_code=True)
 def _(single_thres, threshold_step_slider):
-    dual_thres_low = max(0.01, single_thres - threshold_step_slider.value)
+    dual_thres_low = single_thres
     dual_thres_high = min(1.0, single_thres + threshold_step_slider.value)
     return dual_thres_high, dual_thres_low
 
@@ -1369,10 +1129,14 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
+    mo.md(r"""### Preliminary observations""")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
     mo.md(
         r"""
-    ### Preliminary observations
-
     - RNA-Seq Measurement Uncertainty impacts differential classification predominantly at the classifier threshold. (Ref. Figure 4)
     - Filtering out genes with low mean TPMs decreases the percentage of both AD and NCI subjects whose diagnostic classification changes when at least 10% of simulations mismatch. (Ref. Figure 2 and 3)
     - These low-expression genes are a source of classification instability under uncertainty which need to be taken into account when building diagnostic classifications. (Ref. Figure 4)
@@ -1386,10 +1150,312 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
+    mo.md(r"""### Additional analysis on the Low TPM genes""")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
     mo.md(
         r"""
-    ### References
+    ///note
+    Set the "Mean TPM cutoff value" to a non-zero number to see the effect on the cells below.
+    """
+    )
+    return
 
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    #### Distribution of TPM values
+
+    We want to check the distribution of simulated TPM values for low TPM genes in patients diagnosed as NCI.
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(coefficients, mean_TPM, means, pathos_2, patients_df_1, patients_df_2):
+    low_tpm_patients_df = patients_df_1[means < mean_TPM]
+    low_tpm_coefficients = coefficients[means < mean_TPM]
+    _ad_patients = (pathos_2[pathos_2["Disease"] == "AD"]).index
+    low_tpm_patients_df = low_tpm_patients_df.drop(
+        columns=list(_ad_patients)
+    )  # Keep only NCI subjects but low TPM genes
+    full_set_patients_df = patients_df_1.drop(
+        columns=list(_ad_patients)
+    )  # Keep only NCI subjects but all genes
+    filtered_set_patients_df = patients_df_2.drop(
+        columns=list(_ad_patients)
+    )  # Keep only NCI subjects but high TPM genes
+    return (
+        filtered_set_patients_df,
+        full_set_patients_df,
+        low_tpm_coefficients,
+        low_tpm_patients_df,
+    )
+
+
+@app.cell(hide_code=True)
+def _(NumpyFloat32Array1D, np, pd):
+    from typing import Callable
+
+    from matplotlib.figure import Figure
+
+    from src.simulation import simulate_sampling_experiment
+
+    def generate_samples(
+        tpm_df: pd.DataFrame,
+        sampler: Callable[[float, float, int], NumpyFloat32Array1D],
+        uncertainty: int,
+        n_samples: int,
+        seed: int,
+    ) -> NumpyFloat32Array1D:
+        n_features, num_patients = tpm_df.shape[0], tpm_df.shape[1]
+        # Generate random number seed sequence for seeds for sampler
+        seed_seq = np.random.SeedSequence([654, seed])
+        all_samples = []
+        for j in range(num_patients):
+            samples = np.zeros((n_features, n_samples))
+
+            # Spawn n_feature seeds, one seed per feature
+            seeds = seed_seq.spawn(n_features)
+            for i in range(n_features):
+                mean = tpm_df.iloc[i, j]
+
+                # Generate Monte Carlo samples
+                samples[i] = sampler(mean, uncertainty / 100, n_samples, seeds[i])
+            all_samples.append(samples)
+        return np.hstack(all_samples).ravel()
+
+    return Figure, generate_samples, simulate_sampling_experiment
+
+
+@app.cell(hide_code=True)
+def _(
+    antilogit_classifier_score,
+    low_tpm_coefficients,
+    low_tpm_patients_df,
+    np,
+    pd,
+):
+    _z_scores = (
+        low_tpm_patients_df.values
+        - low_tpm_patients_df.mean(axis=1).values.reshape(-1, 1)
+    ) / low_tpm_patients_df.std(axis=1).values.reshape(-1, 1)
+    low_tpm_gt_probs = antilogit_classifier_score(
+        np.sum(low_tpm_coefficients[:, np.newaxis] * _z_scores, axis=0)
+    )
+    low_tpm_gt_probs = pd.Series(
+        index=low_tpm_patients_df.columns, data=low_tpm_gt_probs
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(Figure, NumpyFloat32Array1D, plt, sns):
+    def plot_histogram(
+        data_1: NumpyFloat32Array1D,
+        data_2: NumpyFloat32Array1D,
+        *,
+        xlabel: str,
+        label_1: str,
+        label_2: str,
+        fig_title: str,
+        uncertainty: int,
+    ) -> Figure:
+        nbins = 30
+        fig, ax = plt.subplots(figsize=(12, 8))
+        sns.histplot(
+            data_1,
+            color="b",
+            alpha=0.3,
+            fill=True,
+            bins=nbins,
+            stat="density",
+            label=label_1,
+            ax=ax,
+        )
+        sns.histplot(
+            data_2,
+            color="r",
+            alpha=0.3,
+            fill=True,
+            bins=nbins,
+            stat="density",
+            label=label_2,
+            ax=ax,
+        )
+        plt.xlabel(xlabel)
+        plt.ylabel("Density")
+        plt.legend(loc="best")
+        plt.title(
+            f"Histogram of {fig_title} from \n{label_1} and {label_2} at {uncertainty}% simulated uncertainty."
+        )
+        return fig
+
+    return (plot_histogram,)
+
+
+@app.cell(hide_code=True)
+def _(
+    generate_samples,
+    low_tpm_patients_df,
+    master_seed,
+    n_samples,
+    plt,
+    sampler,
+    sns,
+    uncertainties,
+):
+    _uncert = uncertainties[-1]
+    low_tpm_patients_samples = generate_samples(
+        low_tpm_patients_df, sampler, uncertainties[-1], n_samples, master_seed
+    )
+    _nbins = 30
+    _fig, _ax = plt.subplots(figsize=(12, 8))
+    sns.histplot(
+        low_tpm_patients_samples,
+        color="b",
+        alpha=0.3,
+        fill=True,
+        bins=_nbins,
+        stat="density",
+        ax=_ax,
+    )
+    plt.xlabel("TPM values")
+    plt.ylabel("Density")
+    plt.title("Histogram of simulated TPM values from low TPM genes of NCI patients")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    #### Does removing low TPM genes increase differential classification of NCI subjects?
+
+    We want to test the hypothesis that removing them causes increased differential classification of patients in the NCI category.
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(
+    coefficients,
+    coefficients_1,
+    dual_thres_high,
+    dual_thres_low,
+    filtered_set_patients_df,
+    full_set_patients_df,
+    master_seed,
+    n_samples,
+    plot_histogram,
+    sampler,
+    simulate_sampling_experiment,
+    single_thres,
+    uncertainties,
+):
+    _uncert = uncertainties[-1]
+    _, _, _, _, _, unfiltered_res = simulate_sampling_experiment(
+        full_set_patients_df,
+        sampler,
+        dual_thres_1=dual_thres_low,
+        dual_thres_2=dual_thres_high,
+        single_thres=single_thres,
+        diff_class_lim=int(0.1 * n_samples),
+        uncertainty=_uncert,
+        n_samples=n_samples,
+        coefficients=coefficients,
+        seed=master_seed,
+    )
+    _, _, _, _, _, filtered_res = simulate_sampling_experiment(
+        filtered_set_patients_df,
+        sampler,
+        dual_thres_1=dual_thres_low,
+        dual_thres_2=dual_thres_high,
+        single_thres=single_thres,
+        diff_class_lim=int(0.1 * n_samples),
+        uncertainty=_uncert,
+        n_samples=n_samples,
+        coefficients=coefficients_1,
+        seed=master_seed,
+    )
+
+    plot_histogram(
+        filtered_res,
+        unfiltered_res,
+        xlabel="Classifier scores (probabilities)",
+        label_1="Filtered dataset",
+        label_2="Unfiltered dataset",
+        fig_title="classifier scores",
+        uncertainty=_uncert,
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    #### What percent of TPM values in low TPM genes among NCI subjects are "Null" values?
+
+    In the original dataset, the TPM values that were missing must have been imputed with 0 to avoid calculation errors. Since the present dataset actually does not have null values, but while generation had all TPM values less than 5 removed, we *assume* that **all TPM values that are zero were previously missing or were considered insignificant**. Getting the proportion of such values for every low TPM gene within NCI patients will help us pinpoint the degree of noise they add to the data.
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(low_tpm_patients_df):
+    _percent_missing_low_tpm_genes = (
+        low_tpm_patients_df.apply(lambda x: x == 0).sum(axis=1)
+        / low_tpm_patients_df.shape[1]
+        * 100
+    )  # Convert to %
+    _percent_missing_low_tpm_genes.name = "Percent missing values from NCI subjects"
+    _percent_missing_low_tpm_genes.index.name = "gene"
+    _percent_missing_low_tpm_genes.sort_values(ascending=False)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    #### How many of the low TPM genes had positive coefficients and negative coefficients?
+
+    We want to see if removing the low TPM genes removes an equal number of genes with positive and negative coefficients.
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(low_tpm_coefficients, mo):
+    mo.md(
+        rf"""
+    - Number of negative coefficient genes = {(low_tpm_coefficients < 0).sum()}
+    - Number of positive coefficient genes = {(low_tpm_coefficients >= 0).sum()}
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""### References""")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
     1. Beaver et al. "An FDA Perspective on the Regulatory Implications of Complex Signatures to Predict Response to Targeted Therapies." _Clin Cancer Res. 2017 Mar 15;23(6):1368-1372._
     2. Braga and Panteghini "The utility of measurement uncertainty in medical laboratories" _Clin Chem Lab Med 2020; 58(9):1407-1413_.
     3. Law, Charity W., et al. "voom: Precision weights unlock linear model analysis tools for RNA-seq read counts." _Genome biology 15 (2014): 1-17_.
