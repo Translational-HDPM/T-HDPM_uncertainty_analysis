@@ -1325,8 +1325,8 @@ def _(Figure, NumpyFloat32Array1D, plt, sns):
         label_2: str,
         fig_title: str,
         uncertainty: int,
+        nbins: int | None = 30,
     ) -> Figure:
-        nbins = 30
         fig, ax = plt.subplots(figsize=(12, 8))
         sns.histplot(
             data_1,
@@ -1420,7 +1420,14 @@ def _(
     uncertainties,
 ):
     _uncert = uncertainties[-1]
-    _, _, _, _, _, unfiltered_res = simulate_sampling_experiment(
+    (
+        _,
+        _,
+        unfiltered_neg_subscores,
+        unfiltered_pos_subscores,
+        _,
+        unfiltered_probs,
+    ) = simulate_sampling_experiment(
         full_set_patients_df,
         sampler,
         dual_thres_1=dual_thres_low,
@@ -1432,29 +1439,36 @@ def _(
         coefficients=coefficients,
         seed=master_seed,
     )
-    _, _, _, _, _, filtered_res = simulate_sampling_experiment(
-        filtered_set_patients_df,
-        sampler,
-        dual_thres_1=dual_thres_low,
-        dual_thres_2=dual_thres_high,
-        single_thres=single_thres,
-        diff_class_lim=int(0.1 * n_samples),
-        uncertainty=_uncert,
-        n_samples=n_samples,
-        coefficients=coefficients_1,
-        seed=master_seed,
+    _, _, filtered_neg_subscores, filtered_pos_subscores, _, filtered_probs = (
+        simulate_sampling_experiment(
+            filtered_set_patients_df,
+            sampler,
+            dual_thres_1=dual_thres_low,
+            dual_thres_2=dual_thres_high,
+            single_thres=single_thres,
+            diff_class_lim=int(0.1 * n_samples),
+            uncertainty=_uncert,
+            n_samples=n_samples,
+            coefficients=coefficients_1,
+            seed=master_seed,
+        )
     )
 
     plot_histogram(
-        filtered_res,
-        unfiltered_res,
+        filtered_probs,
+        unfiltered_probs,
         xlabel="Classifier scores (probabilities)",
         label_1="Filtered dataset",
         label_2="Unfiltered dataset",
         fig_title="classifier scores",
         uncertainty=_uncert,
     )
-    return
+    return (
+        filtered_neg_subscores,
+        filtered_pos_subscores,
+        unfiltered_neg_subscores,
+        unfiltered_pos_subscores,
+    )
 
 
 @app.cell(hide_code=True)
@@ -1510,6 +1524,52 @@ def _(mo):
     mo.md(
         r"""#### Did filtering out low TPM genes reduce the contribution of "resilience" factors to the aggregated classifier score?"""
     )
+    return
+
+
+@app.cell(hide_code=True)
+def _(
+    filtered_neg_subscores,
+    filtered_pos_subscores,
+    mo,
+    np,
+    plot_histogram,
+    uncertainties,
+    unfiltered_neg_subscores,
+    unfiltered_pos_subscores,
+):
+    _uncert = uncertainties[-1]
+    _unfiltered_neg_subscore_fracs = np.abs(unfiltered_neg_subscores) / (
+        np.abs(unfiltered_neg_subscores) + np.abs(unfiltered_pos_subscores)
+    )
+    _filtered_neg_subscore_fracs = np.abs(filtered_neg_subscores) / (
+        np.abs(filtered_neg_subscores) + np.abs(filtered_pos_subscores)
+    )
+
+    _tabs = mo.ui.tabs(
+        {
+            "Positive subscores": plot_histogram(
+                1 - _filtered_neg_subscore_fracs,
+                1 - _unfiltered_neg_subscore_fracs,
+                xlabel="Classifier positive subscores fraction (contribution from genes with positive coefficients)",
+                label_1="Filtered dataset",
+                label_2="Unfiltered dataset",
+                fig_title="classifier positive subscores fraction",
+                uncertainty=_uncert,
+            ),
+            "Negative subscores": plot_histogram(
+                _filtered_neg_subscore_fracs,
+                _unfiltered_neg_subscore_fracs,
+                xlabel="Classifier negative subscores fraction (contribution from genes with negative coefficients)",
+                label_1="Filtered dataset",
+                label_2="Unfiltered dataset",
+                fig_title="classifier negative subscores fraction",
+                uncertainty=_uncert,
+            ),
+        },
+        value="Effect of filtering on subscore contributions to classifier score",
+    )
+    _tabs
     return
 
 
