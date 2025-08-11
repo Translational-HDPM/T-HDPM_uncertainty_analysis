@@ -527,9 +527,29 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
+    single_threshold_slider_disabled = True
+
+    def set_single_threshold_slider_disabled(arg: bool) -> None:
+        global single_threshold_slider_disabled
+        single_threshold_slider_disabled = not single_threshold_slider_disabled
+
     use_youdens_index_for_threshold_switch = mo.ui.switch(
-        value=True, label="Use Youden's index to set threshold?"
+        value=True,
+        label="Use Youden's index to set threshold?",
+        on_change=set_single_threshold_slider_disabled,
     )
+    return (
+        single_threshold_slider_disabled,
+        use_youdens_index_for_threshold_switch,
+    )
+
+
+@app.cell(hide_code=True)
+def _(
+    mo,
+    single_threshold_slider_disabled,
+    use_youdens_index_for_threshold_switch,
+):
     single_threshold_slider = mo.ui.slider(
         start=0.01,
         stop=0.99,
@@ -537,15 +557,12 @@ def _(mo):
         value=0.03,
         label="Single threshold value",
         show_value=True,
+        disabled=single_threshold_slider_disabled,
     )
-    return single_threshold_slider, use_youdens_index_for_threshold_switch
 
-
-@app.cell(hide_code=True)
-def _(mo, single_threshold_slider, use_youdens_index_for_threshold_switch):
     _elements = [use_youdens_index_for_threshold_switch, single_threshold_slider]
     mo.callout(mo.vstack(_elements))
-    return
+    return (single_threshold_slider,)
 
 
 @app.cell(hide_code=True)
