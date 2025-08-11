@@ -568,6 +568,7 @@ def _(
 @app.cell(hide_code=True)
 def _(
     ad_sens_spec_df,
+    mo,
     np,
     single_threshold_slider,
     use_youdens_index_for_threshold_switch,
@@ -583,7 +584,15 @@ def _(
             lambda x: np.round(x, _precision)
         )
         _filt = _rounded_sens == _rounded_spec
-        assert _filt.sum() >= 1
+        mo.stop(
+            _filt.sum() < 1,
+            mo.callout(
+                mo.md(
+                    """///warning
+                    A probability threshold value maximizing Youden's index for the current mean TPM cutoff value was not found. Change the mean TPM cutoff value to continue."""
+                )
+            ),
+        )
 
         _target_ad_specificity = (
             ad_sens_spec_df.loc[_filt, "specificity"].values[0] * 100
@@ -1492,6 +1501,14 @@ def _(low_tpm_coefficients, mo):
     - Number of negative coefficient genes = {(low_tpm_coefficients < 0).sum()}
     - Number of positive coefficient genes = {(low_tpm_coefficients >= 0).sum()}
     """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""#### Did filtering out low TPM genes reduce the contribution of "resilience" factors to the aggregated classifier score?"""
     )
     return
 
