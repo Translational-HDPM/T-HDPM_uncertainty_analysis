@@ -526,24 +526,57 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(ad_sens_spec_df, np, using_dummy_data):
-    _precision = 0 if using_dummy_data else 2
-    _rounded_sens = ad_sens_spec_df["sensitivity"].apply(
-        lambda x: np.round(x, _precision)
+def _(mo):
+    use_youdens_index_for_threshold_switch = mo.ui.switch(
+        value=True, label="Use Youden's index to set threshold?"
     )
-    _rounded_spec = ad_sens_spec_df["specificity"].apply(
-        lambda x: np.round(x, _precision)
+    single_threshold_slider = mo.ui.slider(
+        start=0.01,
+        stop=0.99,
+        step=0.01,
+        value=0.03,
+        label="Single threshold value",
+        show_value=True,
     )
-    _filt = _rounded_sens == _rounded_spec
-    assert _filt.sum() >= 1
+    return single_threshold_slider, use_youdens_index_for_threshold_switch
 
-    target_ad_specificity = (
-        ad_sens_spec_df.loc[_filt, "specificity"].values[0] * 100
-    )  # For single threshold, roughly where sensitivity = specificity
-    single_thres = ad_sens_spec_df.loc[_filt, "threshold"].values[0] / 100
-    single_thres = max(0.03, single_thres)  # Set a floor of 0.03 for the threshold
-    # print(f"{single_thres=}")
-    return single_thres, target_ad_specificity
+
+@app.cell(hide_code=True)
+def _(mo, single_threshold_slider, use_youdens_index_for_threshold_switch):
+    _elements = [use_youdens_index_for_threshold_switch, single_threshold_slider]
+    mo.callout(mo.vstack(_elements))
+    return
+
+
+@app.cell(hide_code=True)
+def _(
+    ad_sens_spec_df,
+    np,
+    single_threshold_slider,
+    use_youdens_index_for_threshold_switch,
+    using_dummy_data,
+):
+    single_thres = 0.03
+    if use_youdens_index_for_threshold_switch.value:
+        _precision = 0 if using_dummy_data else 2
+        _rounded_sens = ad_sens_spec_df["sensitivity"].apply(
+            lambda x: np.round(x, _precision)
+        )
+        _rounded_spec = ad_sens_spec_df["specificity"].apply(
+            lambda x: np.round(x, _precision)
+        )
+        _filt = _rounded_sens == _rounded_spec
+        assert _filt.sum() >= 1
+
+        _target_ad_specificity = (
+            ad_sens_spec_df.loc[_filt, "specificity"].values[0] * 100
+        )  # For single threshold, roughly where sensitivity = specificity
+        single_thres = ad_sens_spec_df.loc[_filt, "threshold"].values[0] / 100
+        single_thres = max(0.03, single_thres)  # Set a floor of 0.03 for the threshold
+        # print(f"{single_thres=}")
+    else:
+        single_thres = single_threshold_slider.value
+    return (single_thres,)
 
 
 @app.cell(hide_code=True)
@@ -888,11 +921,11 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(
+    ad_spec,
     ad_spec_high,
     nci_spec_low,
     plot_differential_classification_results,
     res,
-    target_ad_specificity,
     uncertainties,
 ):
     plot_differential_classification_results(
@@ -902,7 +935,7 @@ def _(
         gt_labels_dual_thres=res.dual_thres_gt_labels,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
         pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
-        single_thres_plot_title=f"(a) Single threshold, specificity: {target_ad_specificity:.2f} % AD",
+        single_thres_plot_title=f"(a) Single threshold, specificity: {ad_spec:.2f} % AD",
         dual_thres_plot_title=f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
         figure_title="Figure 2. Differential classification for levels of uncertainty"
         + f" ({min(uncertainties)}-{max(uncertainties)}%)\n"
@@ -941,11 +974,11 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(
+    ad_spec,
     ad_spec_high,
     nci_spec_low,
     plot_jaccard_index_plot,
     res,
-    target_ad_specificity,
     uncertainties,
 ):
     plot_jaccard_index_plot(
@@ -955,7 +988,7 @@ def _(
         gt_labels_dual_thres=res.dual_thres_gt_labels,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
         pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
-        single_thres_plot_title=f"(a) Single threshold, specificity: {target_ad_specificity:.2f} % AD",
+        single_thres_plot_title=f"(a) Single threshold, specificity: {ad_spec:.2f} % AD",
         dual_thres_plot_title=f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
         figure_title="Figure 3. Jaccard index plot showing differential classification"
         + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %) \n"
@@ -1013,6 +1046,7 @@ def _(calculate_subject_wise_agreement, n_samples, res, uncertainties):
 @app.cell(hide_code=True)
 def _(
     GridSpec,
+    ad_spec,
     ad_spec_high,
     dual_thres_subj_wise_agreement,
     gt_probs,
@@ -1022,7 +1056,6 @@ def _(
     plt,
     single_thres_subj_wise_agreement,
     sns,
-    target_ad_specificity,
     uncertainties,
 ):
     ad_probs = gt_probs[pathos_2[pathos_2["Disease"] == "AD"].index]
@@ -1034,7 +1067,7 @@ def _(
         single_thres_subj_wise_agreement,
         gt_probs,
         uncertainties,
-        f"(a) Single threshold, specificity: {target_ad_specificity:.2f}% AD",
+        f"(a) Single threshold, specificity: {ad_spec:.2f}% AD",
         False,
         False,
     )
