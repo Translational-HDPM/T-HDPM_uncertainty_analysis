@@ -234,7 +234,7 @@ def _(mo):
         show_value=True,
     )
     replicate_aggregation_choice_dropdown = mo.ui.dropdown(
-        ["average", "minimum", "maximum"],
+        ["average", "replicate 1", "replicate 2"],
         value="average",
         label="Collapse replicates by",
     )
@@ -331,21 +331,31 @@ def _(np, raw_data):
     patients_df = raw_data[~raw_data.loc[:, "Coeff"].isnull()]
     coefficients = np.nan_to_num(np.array(patients_df.loc[:, "Coeff"]))
     patients_df = patients_df.filter(regex="^\\d+")
-    genes = patients_df.index.values
-    return coefficients, genes, patients_df
+    return coefficients, patients_df
 
 
 @app.cell(hide_code=True)
-def _(collapse_replicates_by, genes, pathos_1, patients_df):
+def _(collapse_replicates_by, pathos_1, patients_df):
     _grouped_cols = patients_df.columns.str.split("-").str[0]
-    _grouped = patients_df.groupby(_grouped_cols, axis=1)
+    _grouped = patients_df.T.groupby(_grouped_cols)
     if collapse_replicates_by == "average":
-        patients_df_1 = _grouped.apply(lambda x: x.mean(axis=1)).reset_index(drop=True)
-    elif collapse_replicates_by == "maximum":
-        patients_df_1 = _grouped.apply(lambda x: x.max(axis=1)).reset_index(drop=True)
-    elif collapse_replicates_by == "minimum":
-        patients_df_1 = _grouped.apply(lambda x: x.min(axis=1)).reset_index(drop=True)
-    patients_df_1.index = genes
+        patients_df_1 = _grouped.apply(lambda x: x.mean()).T
+    elif collapse_replicates_by == "replicate 1":
+        patients_df_1 = (
+            _grouped.apply(lambda x: x[x.index.str.endswith("r1")])
+            .reset_index()
+            .drop(columns=["level_1"])
+            .set_index("level_0")
+            .T
+        )
+    elif collapse_replicates_by == "replicate 2":
+        patients_df_1 = (
+            _grouped.apply(lambda x: x[x.index.str.endswith("r2")])
+            .reset_index()
+            .drop(columns=["level_1"])
+            .set_index("level_0")
+            .T
+        )
 
     _patients_df_cols_not_in_pathos = []
     for _col in patients_df_1.columns:
