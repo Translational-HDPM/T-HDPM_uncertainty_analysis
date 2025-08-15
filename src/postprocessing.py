@@ -901,7 +901,6 @@ def plot_jaccard_index_plot(
         bbox_to_anchor=(0.5, 0.03),
     )
     fig.suptitle(figure_title, fontsize=14)
-    fig.show()
     if save:
         fig.savefig(f"{figure_title}.png")
     return fig
