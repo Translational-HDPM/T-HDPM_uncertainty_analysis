@@ -1,7 +1,7 @@
 import marimo
 
-__generated_with = "0.14.16"
-app = marimo.App()
+__generated_with = "0.14.17"
+app = marimo.App(width="full")
 
 
 @app.cell(hide_code=True)
@@ -1178,6 +1178,71 @@ def _(mo, uncertainties):
 
 @app.cell(hide_code=True)
 def _(mo):
+    mo.md(
+        r"""#### Which subjects flipped their classes (categories) under simulated noise?"""
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo, uncertainties, uncertainty_range_slider):
+    uncertainty_slider = mo.ui.slider(
+        start=uncertainties[0],
+        stop=uncertainties[-1],
+        step=uncertainty_range_slider.step,
+        value=uncertainties[-1],
+        show_value=True,
+        label="Select uncertainty level",
+    )
+    mo.callout(uncertainty_slider)
+    return (uncertainty_slider,)
+
+
+@app.cell(hide_code=True)
+def _(mo, pd, res, uncertainty_slider):
+    _uncert = uncertainty_slider.value
+    _single_thres_label_dict = {0: "NCI", 1: "AD"}
+    _dual_thres_label_dict = {0: "NCI", 1: "Intermediate", 2: "AD"}
+
+    def get_display_df(
+        gt_labels: pd.Series,
+        pred_labels: pd.Series,
+        label_dict: dict[int, str],
+    ) -> pd.DataFrame:
+        display_df = pd.DataFrame(
+            [
+                gt_labels.apply(lambda x: label_dict[x]),
+                pred_labels.apply(lambda x: label_dict[x]),
+            ]
+        ).T
+        display_df.rename(columns={0: "No noise", 1: "With noise"}, inplace=True)
+        display_df.index.name = "Patient ID"
+        display_df["Category changed"] = (
+            display_df["No noise"] == display_df["With noise"]
+        )
+        return display_df
+
+    _tabs = mo.ui.tabs(
+        {
+            "Single threshold": get_display_df(
+                res.single_thres_gt_labels,
+                res.single_thres_pred_labels[_uncert],
+                _single_thres_label_dict,
+            ),
+            "Dual threshold": get_display_df(
+                res.dual_thres_gt_labels,
+                res.dual_thres_pred_labels[_uncert],
+                _dual_thres_label_dict,
+            ),
+        },
+        value="Subject-wise categories with and without simulated noise",
+    )
+    _tabs
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
     mo.callout(
         mo.md(
             "To observe the effects of filtering out genes with low mean TPM, please change the value in the interactive mean TPM cutoff slider. The plots will be regenerated automatically."
@@ -1570,6 +1635,12 @@ def _(
         value="Effect of filtering on subscore contributions to classifier score",
     )
     _tabs
+    return
+
+
+@app.cell
+def _(gt_probs):
+    gt_probs
     return
 
 
