@@ -350,7 +350,11 @@ def _(collapse_replicates_by, pathos_1, patients_df):
         )
     elif collapse_replicates_by == "replicate 2":
         patients_df_1 = (
-            _grouped.apply(lambda x: x[x.index.str.endswith("r2")])
+            _grouped.apply(
+                lambda x: x[x.index.str.endswith("r2")]
+                if len(x) > 1
+                else x[x.index.str.endswith("r1")]
+            )
             .reset_index()
             .drop(columns=["level_1"])
             .set_index("level_0")
@@ -370,6 +374,20 @@ def _(collapse_replicates_by, pathos_1, patients_df):
         pathos_2.loc[_col] = "NCI"
     patients_df_1 = patients_df_1.loc[:, pathos_2.index]
     return pathos_2, patients_df_1
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""After pre-processing the matrix (dataframe) of TPM values looks like this:"""
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(patients_df_2):
+    patients_df_2.head()
+    return
 
 
 @app.cell(hide_code=True)
