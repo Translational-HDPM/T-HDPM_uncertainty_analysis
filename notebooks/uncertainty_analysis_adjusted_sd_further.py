@@ -1246,7 +1246,7 @@ def _(mo, pd, res, uncertainty_slider):
         display_df.rename(columns={0: "No noise", 1: "With noise"}, inplace=True)
         display_df.index.name = "Patient ID"
         display_df["Category changed"] = (
-            display_df["No noise"] == display_df["With noise"]
+            display_df["No noise"] != display_df["With noise"]
         )
         return display_df
 
@@ -1666,7 +1666,7 @@ def _(
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(gt_probs):
     gt_probs
     return
