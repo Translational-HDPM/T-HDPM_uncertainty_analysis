@@ -41,37 +41,11 @@ def _():
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
-    import seaborn as sns
-    from matplotlib.gridspec import GridSpec
 
     from src.dtypes import NumpyFloat32Array1D
-    from src.logreg_classifier import antilogit_classifier_score
-    from src.postprocessing import (
-        build_sensitivity_specificity_df,
-        calculate_sensitivity_specificity_and_predictive_values,
-        calculate_subject_wise_agreement,
-        plot_differential_classification_results,
-        plot_jaccard_index_plot,
-        plot_v_plot,
-    )
     from src.simulation import simulate_multiple_uncertainties
 
-    return (
-        GridSpec,
-        NumpyFloat32Array1D,
-        antilogit_classifier_score,
-        build_sensitivity_specificity_df,
-        calculate_sensitivity_specificity_and_predictive_values,
-        calculate_subject_wise_agreement,
-        np,
-        pd,
-        plot_differential_classification_results,
-        plot_jaccard_index_plot,
-        plot_v_plot,
-        plt,
-        simulate_multiple_uncertainties,
-        sns,
-    )
+    return NumpyFloat32Array1D, np, pd, plt, simulate_multiple_uncertainties
 
 
 @app.cell(hide_code=True)
@@ -213,7 +187,6 @@ def _(mo, patients_df, patients_df_2):
 @app.cell(hide_code=True)
 def _(Path, pd):
     raw_data, pathos = None, None
-    using_dummy_data = False  # Whether using a dummy dataset
     data_root = Path(__file__).parent.parent.parent / "raw_data"
     if data_root.exists():
         raw_data = pd.read_excel(
@@ -228,11 +201,10 @@ def _(Path, pd):
         raw_data = raw_data.set_index("gene_id")
     else:
         # Use dummy data if actual dataset is not available
-        using_dummy_data = True
         data_root = Path(__file__).parent.parent / "dummy_data"
         raw_data = pd.read_csv(data_root / "tpm_expression_data.csv")
         pathos = pd.read_csv(data_root / "disease_status_data.csv")
-    return pathos, raw_data, using_dummy_data
+    return pathos, raw_data
 
 
 @app.cell(hide_code=True)
@@ -367,339 +339,6 @@ def _(mo, patients_df_1, patients_df_2):
         mo.md(
             f"We dropped {patients_df_1.shape[0] - patients_df_2.shape[0]} out of {patients_df_1.shape[0]} genes, i.e. {(patients_df_1.shape[0] - patients_df_2.shape[0]) / patients_df_1.shape[0] * 100.0:.2f}% of the genes."
         )
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""### Selecting the Probability threshold based on Sensitivity and Specificity"""
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    Before simulating uncertainty, we chose to first establish the classifier's decision thresholds on the original, unperturbed data. For deciding on the probability threshold, we use **Youden's J statistic (Youden's index)** which is defined as
-
-    \[
-    J = sensitivity + specificity -1
-    \]
-
-    where
-
-    \[
-    sensitivity = \frac{TP}{TP+FN}
-    \]
-
-
-    \[
-    specificity = \frac{TN}{TN+FP}
-    \]
-
-
-    $TP$, $TN$, $FP$ and $FN$ denote the number of true positives, true negatives, false positives and false negatives for a given class, respectively.
-
-    We would like to maximize the Youden's index with our threshold selection. We do this _by selecting a threshold at which sensitivity and specificity are roughly equal_.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(antilogit_classifier_score, coefficients_1, np, patients_df_2, pd):
-    _z_scores = (
-        patients_df_2.values - patients_df_2.mean(axis=1).values.reshape(-1, 1)
-    ) / patients_df_2.std(axis=1).values.reshape(-1, 1)
-    gt_probs = antilogit_classifier_score(
-        np.sum(coefficients_1[:, np.newaxis] * _z_scores, axis=0)
-    )
-    gt_probs = pd.Series(index=patients_df_2.columns, data=gt_probs)
-    return (gt_probs,)
-
-
-@app.cell(hide_code=True)
-def _(build_sensitivity_specificity_df, gt_probs, pathos_2):
-    ad_sens_spec_df = build_sensitivity_specificity_df(pathos_2, gt_probs, "AD")
-    nci_sens_spec_df = build_sensitivity_specificity_df(pathos_2, gt_probs, "NCI")
-    return ad_sens_spec_df, nci_sens_spec_df
-
-
-@app.cell(hide_code=True)
-def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
-    _fig, _ = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=(18, 6))
-    plt.subplot(121)
-    sns.lineplot(
-        data=ad_sens_spec_df,
-        x="threshold",
-        y="specificity",
-        label="AD specificity",
-    )
-    sns.lineplot(
-        data=ad_sens_spec_df,
-        x="threshold",
-        y="sensitivity",
-        label="AD sensitivity",
-    )
-    plt.xlabel("")
-    plt.ylabel("")
-    plt.legend()
-    plt.title("(a) Alzheimer's disease (AD) category")
-    plt.subplot(122)
-    sns.lineplot(
-        data=nci_sens_spec_df,
-        x="threshold",
-        y="specificity",
-        label="NCI specificity",
-    )
-    sns.lineplot(
-        data=nci_sens_spec_df,
-        x="threshold",
-        y="sensitivity",
-        label="NCI sensitivity",
-    )
-    plt.xlabel("")
-    plt.legend()
-    plt.title("(b) Non-Cognitively Impaired (NCI) category")
-    _fig.text(0.5, 0.05, "Probability threshold", ha="center", va="center")
-    _fig.text(0.08, 0.35, "Sensitivity/Specificity", rotation="vertical")
-    _fig.suptitle(
-        "Figure 1. Sensitivity and specificity versus probability threshold curves for AD and NCI categories."
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.callout(
-        mo.md(
-            r"Figure 1. Sensitivity and specificity versus probability threshold curves for (a) Alzheimer's disease (AD) category and (b) Non-Cognitively Impaired (NCI) categories. The selection of the probability threshold is done where sensitivity = specificity, or the threshold which maximizes the value of Youden's Index"
-        )
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    single_threshold_slider_disabled = True
-
-    def set_single_threshold_slider_disabled(arg: bool) -> None:
-        global single_threshold_slider_disabled
-        single_threshold_slider_disabled = not single_threshold_slider_disabled
-
-    use_youdens_index_for_threshold_switch = mo.ui.switch(
-        value=True,
-        label="Use Youden's index to set threshold?",
-        on_change=set_single_threshold_slider_disabled,
-    )
-    return (
-        single_threshold_slider_disabled,
-        use_youdens_index_for_threshold_switch,
-    )
-
-
-@app.cell(hide_code=True)
-def _(
-    mo,
-    single_threshold_slider_disabled,
-    use_youdens_index_for_threshold_switch,
-):
-    single_threshold_slider = mo.ui.slider(
-        start=0.01,
-        stop=0.99,
-        step=0.01,
-        value=0.03,
-        label="Single threshold value",
-        show_value=True,
-        disabled=single_threshold_slider_disabled,
-    )
-
-    _elements = [use_youdens_index_for_threshold_switch, single_threshold_slider]
-    mo.callout(mo.vstack(_elements))
-    return (single_threshold_slider,)
-
-
-@app.cell(hide_code=True)
-def _(
-    ad_sens_spec_df,
-    mo,
-    np,
-    single_threshold_slider,
-    use_youdens_index_for_threshold_switch,
-    using_dummy_data,
-):
-    single_thres = 0.03
-    if use_youdens_index_for_threshold_switch.value:
-        _precision = 0 if using_dummy_data else 2
-        _rounded_sens = ad_sens_spec_df["sensitivity"].apply(
-            lambda x: np.round(x, _precision)
-        )
-        _rounded_spec = ad_sens_spec_df["specificity"].apply(
-            lambda x: np.round(x, _precision)
-        )
-        _filt = _rounded_sens == _rounded_spec
-        mo.stop(
-            _filt.sum() < 1,
-            mo.callout(
-                mo.md(
-                    """///warning
-                    A probability threshold value maximizing Youden's index for the current mean TPM cutoff value was not found. Change the mean TPM cutoff value to continue."""
-                )
-            ),
-        )
-
-        _target_ad_specificity = (
-            ad_sens_spec_df.loc[_filt, "specificity"].values[0] * 100
-        )  # For single threshold, roughly where sensitivity = specificity
-        single_thres = ad_sens_spec_df.loc[_filt, "threshold"].values[0] / 100
-        single_thres = max(0.03, single_thres)  # Set a floor of 0.03 for the threshold
-        # print(f"{single_thres=}")
-    else:
-        single_thres = single_threshold_slider.value
-    return (single_thres,)
-
-
-@app.cell(hide_code=True)
-def _(
-    calculate_sensitivity_specificity_and_predictive_values,
-    gt_probs,
-    pathos_2,
-    single_thres,
-):
-    ad_sens, ad_spec, ad_ppv, ad_npv = (
-        calculate_sensitivity_specificity_and_predictive_values(
-            pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-            gt_probs.apply(lambda x: 1 if x >= single_thres else 0),
-            0,
-        )
-    )
-    ad_spec = ad_spec * 100.0
-    ad_sens = ad_sens * 100.0
-    ad_ppv *= 100.0
-    ad_npv *= 100.0
-    return ad_npv, ad_ppv, ad_sens, ad_spec
-
-
-@app.cell(hide_code=True)
-def _(ad_npv, ad_ppv, ad_sens, ad_spec, mo, single_thres):
-    mo.md(
-        rf"""
-    At threshold {single_thres:.4f}, for AD,
-
-    - sensitivity = {ad_sens:.4f},
-    - specificity = {ad_spec:.4f},
-    - positive predictive value = {ad_ppv:.4f},
-    - negative predictive value = {ad_npv:.4f},
-    - Youden's index = {(ad_sens + ad_spec - 100) / 100:.4f}.
-
-    So, we use {single_thres:.4f} as our probability threshold for the single threshold classification scenario.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo, single_thres):
-    mo.md(
-        rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. But if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold equal to the single threshold ({single_thres:.4f}) as calculated before, and upper threshold at few steps from the lower threshold."""
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    threshold_step_slider = mo.ui.slider(
-        start=0.01,
-        stop=1.00,
-        step=0.005,
-        value=0.06,
-        show_value=True,
-        label="Step to set the upper threshold away from the lower threshold.",
-    )
-    mo.callout(threshold_step_slider)
-    return (threshold_step_slider,)
-
-
-@app.cell(hide_code=True)
-def _(single_thres, threshold_step_slider):
-    dual_thres_low = single_thres
-    dual_thres_high = min(1.0, single_thres + threshold_step_slider.value)
-    return dual_thres_high, dual_thres_low
-
-
-@app.cell(hide_code=True)
-def _(
-    calculate_sensitivity_specificity_and_predictive_values,
-    dual_thres_high,
-    dual_thres_low,
-    gt_probs,
-    pathos_2,
-):
-    nci_sens_low, nci_spec_low, nci_ppv_low, nci_npv_low = (
-        calculate_sensitivity_specificity_and_predictive_values(
-            pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-            gt_probs.apply(lambda x: 1 if x >= dual_thres_low else 0),
-            0,
-        )
-    )
-    ad_sens_high, ad_spec_high, ad_ppv_high, ad_npv_high = (
-        calculate_sensitivity_specificity_and_predictive_values(
-            pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-            gt_probs.apply(lambda x: 1 if x >= dual_thres_high else 0),
-            1,
-        )
-    )
-    ad_spec_high = ad_spec_high * 100.0
-    ad_sens_high = ad_sens_high * 100.0
-    ad_ppv_high *= 100.0
-    ad_npv_high *= 100.0
-    nci_spec_low = nci_spec_low * 100.0
-    nci_sens_low = nci_sens_low * 100.0
-    nci_ppv_low *= 100.0
-    nci_npv_low *= 100.0
-    return (
-        ad_sens_high,
-        ad_spec_high,
-        nci_npv_low,
-        nci_ppv_low,
-        nci_sens_low,
-        nci_spec_low,
-    )
-
-
-@app.cell(hide_code=True)
-def _(
-    ad_sens_high,
-    ad_spec_high,
-    dual_thres_high,
-    dual_thres_low,
-    mo,
-    nci_npv_low,
-    nci_ppv_low,
-    nci_sens_low,
-    nci_spec_low,
-):
-    mo.md(
-        rf"""
-    At lower threshold {dual_thres_low:.4f}, for NCI,
-
-    - sensitivity = {nci_sens_low:.4f}
-    - specificity = {nci_spec_low:.4f}
-    - positive predictive value = {nci_ppv_low:.4f}
-    - negative predictive value = {nci_npv_low:.4f}
-    - Youden's index = {(nci_sens_low + nci_spec_low - 100) / 100:.4f}.
-
-    At upper threshold {dual_thres_high:.4f}, for AD
-
-    - sensitivity = {ad_sens_high:.4f}
-    - specificity = {ad_spec_high:.4f}
-    - positive predictive value = {nci_ppv_low:.4f}
-    - negative predictive value = {nci_npv_low:.4f}
-    - Youden's index = {(ad_sens_high + ad_spec_high - 100) / 100:.4f}
-    """
     )
     return
 
@@ -847,273 +486,6 @@ def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
 
 
 @app.cell(hide_code=True)
-def _(
-    coefficients_1,
-    dual_thres_high,
-    dual_thres_low,
-    master_seed,
-    n_samples,
-    num_parallel_workers,
-    patients_df_2,
-    sampler,
-    simulate_multiple_uncertainties,
-    single_thres,
-    uncertainties,
-):
-    res = simulate_multiple_uncertainties(
-        patients_df_2,
-        sampler,
-        uncertainties,
-        thres_low=dual_thres_low,
-        thres_high=dual_thres_high,
-        single_thres=single_thres,
-        coefficients=coefficients_1,
-        diff_class_lim=int(0.1 * n_samples),
-        n_samples=n_samples,
-        seed=master_seed,
-        num_workers=num_parallel_workers,
-    )
-    return (res,)
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""### Visualization and post-processing""")
-    return
-
-
-@app.cell(hide_code=True)
-def _(
-    ad_spec,
-    ad_spec_high,
-    nci_spec_low,
-    plot_differential_classification_results,
-    res,
-    uncertainties,
-):
-    plot_differential_classification_results(
-        labels_dict_single_thres={"NCI": "b", "AD": "g"},
-        labels_dict_dual_thres={"NCI": "b", "Intermediate": "r", "AD": "g"},
-        gt_labels_single_thres=res.single_thres_gt_labels,
-        gt_labels_dual_thres=res.dual_thres_gt_labels,
-        pred_labels_dict_single_thres=res.single_thres_pred_labels,
-        pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
-        single_thres_plot_title=f"(a) Single threshold, specificity: {ad_spec:.2f} % AD",
-        dual_thres_plot_title=f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
-        figure_title="Figure 2. Differential classification for levels of uncertainty"
-        + f" ({min(uncertainties)}-{max(uncertainties)}%)\n"
-        + "(at least 10% simulated scores mismatch)",
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo, uncertainties):
-    mo.callout(
-        mo.md(rf"""
-        Figure 2. Differential classification for levels of uncertainty  ({min(uncertainties)}-{max(uncertainties)}%) (at least 10% simulated scores mismatch).  As simulated measurement uncertainty increases, a larger percentage of both AD and NCI subjects experience a change in their diagnostic classification in at least 10% of the simulated scenarios.
-    """)
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    #### Jaccard index
-
-    To analyze the impact of simulated technical variation on the classifier's predictions, we use the Jaccard index to compare the predicted categories under synthetic noise against predicted categories with no perturbations. The Jaccard index calculates how similar two finite sets are. For two sets $A$ and $B$, it is defined as the ratio of the size of their intersection to the size of their union.
-
-    $$
-    J(A, B) = \frac{|A \cap B|}{|A \cup B|}
-    $$
-
-    If $A$ and $B$ are identical, the Jaccard index is 1. In this context, the lower the Jaccard index, the more dissimilar the predictions under noise are from the predictions without noise, indicating increased differential classification.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(
-    ad_spec,
-    ad_spec_high,
-    nci_spec_low,
-    plot_jaccard_index_plot,
-    res,
-    uncertainties,
-):
-    plot_jaccard_index_plot(
-        labels_dict_single_thres={"NCI": "b", "AD": "g"},
-        labels_dict_dual_thres={"NCI": "b", "Intermediate": "r", "AD": "g"},
-        gt_labels_single_thres=res.single_thres_gt_labels,
-        gt_labels_dual_thres=res.dual_thres_gt_labels,
-        pred_labels_dict_single_thres=res.single_thres_pred_labels,
-        pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
-        single_thres_plot_title=f"(a) Single threshold, specificity: {ad_spec:.2f} % AD",
-        dual_thres_plot_title=f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
-        figure_title="Figure 3. Jaccard index plot showing differential classification"
-        + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %) \n"
-        + "(at least 10% simulated scores mismatch)",
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo, uncertainties):
-    mo.callout(
-        mo.md(rf"""
-    Figure 3. Jaccard index plot showing differential classification for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %) (at least 10% simulated scores mismatch). The Intermediate group's classification is sensitive to measurement noise, leading to 100% reclassification ($J = 0$) when uncertainty reaches approximately ~15%. This highlights the instability in classification for the intermediate category due to proximity to decision boundaries.
-
-    """)
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""### Visualizing agreement between simulated and inferent scores""")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    We calculate the classification agreement between methods in each part of the spectrum of disease severity using the **V-plot method** ([Petraco et al (2018)](https://openheart.bmj.com/content/openhrt/5/1/e000663.full.pdf)). 
-
-    The V-plot has this shape because the accuracy of tests is universally high at the extremes of disease severity (near 100%) but close to the classification cut-off agreement plunges. The width of the mouth of the V can be used as a general measure of a test’s performance: the wider the V, the poorer the test ability to match a reference modality. Classification agreement between two methods of measurement is called diagnostic accuracy if one test is considered the reference gold standard.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(calculate_subject_wise_agreement, n_samples, res, uncertainties):
-    single_thres_subj_wise_agreement = calculate_subject_wise_agreement(
-        gt_series_dict=res.single_thres_gt_series,
-        pred_series_dict=res.single_thres_pred_series,
-        uncertainties=uncertainties,
-        n_samples=n_samples,
-    )
-    dual_thres_subj_wise_agreement = calculate_subject_wise_agreement(
-        gt_series_dict=res.dual_thres_gt_series,
-        pred_series_dict=res.dual_thres_pred_series,
-        uncertainties=uncertainties,
-        n_samples=n_samples,
-    )
-    return dual_thres_subj_wise_agreement, single_thres_subj_wise_agreement
-
-
-@app.cell(hide_code=True)
-def _(
-    GridSpec,
-    ad_spec,
-    ad_spec_high,
-    dual_thres_subj_wise_agreement,
-    gt_probs,
-    nci_spec_low,
-    pathos_2,
-    plot_v_plot,
-    plt,
-    single_thres_subj_wise_agreement,
-    sns,
-    uncertainties,
-):
-    ad_probs = gt_probs[pathos_2[pathos_2["Disease"] == "AD"].index]
-    nci_probs = gt_probs[pathos_2[pathos_2["Disease"] == "NCI"].index]
-    fig = plt.figure(figsize=(18, 10))
-    gs = GridSpec(2, 2, height_ratios=[1, 1])
-    fig.add_subplot(gs[0])
-    plot_v_plot(
-        single_thres_subj_wise_agreement,
-        gt_probs,
-        uncertainties,
-        f"(a) Single threshold, specificity: {ad_spec:.2f}% AD",
-        False,
-        False,
-    )
-    plt.xlim([0.0, 1.0])
-    plt.ylabel("Percent agreement between simulated and\n inferent scores for subjects")
-    plt.gca().set_xticklabels([])
-    fig.add_subplot(gs[1])
-    plot_v_plot(
-        dual_thres_subj_wise_agreement,
-        gt_probs,
-        uncertainties,
-        f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
-        False,
-        False,
-    )
-    plt.xlim([0.0, 1.0])
-    plt.gca().set_xticklabels([])
-    plt.gca().set_yticklabels([])
-    plt.ylabel("")
-    leg_handles, leg_labels = plt.gca().get_legend_handles_labels()
-    for i in [3, 4]:
-        fig.add_subplot(gs[i - 1])
-        sns.histplot(
-            ad_probs,
-            color="r",
-            bins=30,
-            label="Classifier probability score for AD patients",
-            fill=True,
-            alpha=0.3,
-        )
-        sns.histplot(
-            nci_probs,
-            color="b",
-            bins=30,
-            label="Classifier probability score for NCI patients",
-            fill=True,
-            alpha=0.3,
-        )
-        plt.xlim([0.0, 1.0])
-        if i == 4:
-            plt.gca().set_yticklabels([])
-            plt.ylabel("")
-    leg_handles_2, leg_labels_2 = plt.gca().get_legend_handles_labels()
-    # fig.legend(
-    #     leg_handles,
-    #     leg_labels,
-    #     loc="upper center",
-    #     bbox_to_anchor=(0.5, 0.05),
-    #     ncol=len(uncertainties) // 2,
-    # )
-    # fig.legend(
-    #     leg_handles_2,
-    #     leg_labels_2,
-    #     loc="upper center",
-    #     bbox_to_anchor=(0.5, -0.07),
-    #     ncol=len(uncertainties) // 2,
-    # )
-    fig.text(0.5, 0.07, "Probability score", va="center", ha="center")
-    fig.suptitle(
-        "Figure 4. V-plot showing agreement between simulated and inferent scores"
-        + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)}%)",
-        fontsize=14,
-    )
-    fig.text(
-        0.1,
-        -0.15,
-        "*The histograms below the v-plots show the distribution of classifier probability scores",
-        ha="left",
-        va="center",
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo, uncertainties):
-    mo.callout(
-        mo.md(rf"""Figure 4. V-plot showing agreement between simulated and inferent scores for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)}%). The agreement between inferent and simulated scores drops as we move closer to the threshold. The “V” near the threshold gets wider with increased simulated uncertainty level. 
-    """)
-    )
-    return
-
-
-@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""### How does the threshold selection affect differential classification for each category?"""
@@ -1123,8 +495,11 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(
+    Path,
     coefficients_1,
+    collapse_replicates_by,
     master_seed,
+    mean_TPM,
     n_samples,
     np,
     num_parallel_workers,
@@ -1134,61 +509,87 @@ def _(
     simulate_multiple_uncertainties,
     uncertainties,
 ):
+    import math
+
     from src.postprocessing import get_differential_classification
 
     lower = np.array([0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
     upper = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.99])
-    diff_cls_df_full = pd.DataFrame(
-        columns=[
-            "lower threshold",
-            "upper threshold",
-            "uncertainty",
-            "NCI",
-            "Intermediate",
-            "AD",
-        ]
-    )
-    results_dict = dict()
-    _idx = 0
-    for thres_low in lower:
-        for thres_high in upper[upper > thres_low]:
-            _res = simulate_multiple_uncertainties(
-                patients_df_2,
-                sampler,
-                uncertainties[-2:],
-                thres_low=thres_low,
-                thres_high=thres_high,
-                single_thres=thres_low,
-                coefficients=coefficients_1,
-                diff_class_lim=int(0.1 * n_samples),
-                n_samples=n_samples,
-                seed=master_seed,
-                num_workers=num_parallel_workers,
-            )
-            results_dict[(thres_low, thres_high)] = _res
-            _diff_cls_df = get_differential_classification(
-                _res.dual_thres_gt_labels,
-                _res.dual_thres_pred_labels,
-                ["NCI", "Intermediate", "AD"],
-            )
-            for _uncertainty, _nci, _interm, _ad in _diff_cls_df.itertuples():
-                diff_cls_df_full.loc[_idx] = {
-                    "lower threshold": thres_low,
-                    "upper threshold": thres_high,
-                    "uncertainty": _uncertainty,
-                    "NCI": _nci,
-                    "Intermediate": _interm,
-                    "AD": _ad,
-                }
-                _idx += 1
-            diff_cls_df_full.to_csv(
-                "differential_classification_dual_threshold_n_100.csv"
-            )
+    name = f"differential_classification_dual_threshold_n_{n_samples}_mean_tpm_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.csv"
+    if Path(name).exists():
+        diff_cls_df_full = pd.read_csv(name)
+    else:
+        diff_cls_df_full = pd.DataFrame(
+            columns=[
+                "lower threshold",
+                "upper threshold",
+                "uncertainty",
+                "NCI",
+                "Intermediate",
+                "AD",
+            ]
+        )
+        results_dict = dict()
+        _idx = 0
+        for thres_low in lower:
+            for thres_high in upper[upper > thres_low]:
+                _res = simulate_multiple_uncertainties(
+                    patients_df_2,
+                    sampler,
+                    uncertainties[-1:],
+                    thres_low=thres_low,
+                    thres_high=thres_high,
+                    single_thres=thres_low,
+                    coefficients=coefficients_1,
+                    diff_class_lim=int(0.1 * n_samples),
+                    n_samples=n_samples,
+                    seed=master_seed,
+                    num_workers=num_parallel_workers,
+                )
+                results_dict[(thres_low, thres_high)] = _res
+                _diff_cls_df = get_differential_classification(
+                    _res.dual_thres_gt_labels,
+                    _res.dual_thres_pred_labels,
+                    ["NCI", "Intermediate", "AD"],
+                )
+                _num_gt_nci, _num_gt_interm, _num_gt_ad = (
+                    (_res.dual_thres_gt_labels == 0).sum(),
+                    (_res.dual_thres_gt_labels == 1).sum(),
+                    (_res.dual_thres_gt_labels == 2).sum(),
+                )
+                for _uncertainty, _nci, _interm, _ad in _diff_cls_df.itertuples():
+                    _nci, _interm, _ad = (
+                        _nci * _num_gt_nci / 100,
+                        _interm * _num_gt_interm / 100,
+                        _ad * _num_gt_ad / 100,
+                    )
+                    diff_cls_df_full.loc[_idx] = {
+                        "lower threshold": thres_low,
+                        "upper threshold": thres_high,
+                        "uncertainty": _uncertainty,
+                        "NCI": int(_nci if not math.isnan(_nci) else 0),
+                        "Intermediate": int(_interm if not math.isnan(_interm) else 0),
+                        "AD": int(_ad if not math.isnan(_ad) else 0),
+                    }
+                    _idx += 1
+                diff_cls_df_full.to_csv(name)
+                print(
+                    f"It. {_idx}, low = {thres_low}, high = {thres_high}: Saved CSV to {name}."
+                )
     return diff_cls_df_full, lower, upper
 
 
 @app.cell(hide_code=True)
-def _(diff_cls_df_full, np, plt, uncertainties, upper):
+def _(
+    collapse_replicates_by,
+    diff_cls_df_full,
+    mean_TPM,
+    n_samples,
+    np,
+    plt,
+    uncertainties,
+    upper,
+):
     _uncert, _upper_thres = max(uncertainties), np.max(upper)
     _to_plot_df = (
         diff_cls_df_full.groupby(by=["uncertainty", "upper threshold"])
@@ -1201,7 +602,7 @@ def _(diff_cls_df_full, np, plt, uncertainties, upper):
     for _cat in ["NCI", "Intermediate", "AD"]:
         plt.plot(_to_plot_df.index, _to_plot_df[_cat], label=_cat)
 
-    plt.ylabel("Percentage within category differentially classified")
+    plt.ylabel("Number of subjects in category differentially classified")
     plt.title(
         f"Effect of changing lower threshold on differential classification, \nupper threshold = {_upper_thres}, uncertainty = {_uncert} %"
     )
@@ -1213,11 +614,25 @@ def _(diff_cls_df_full, np, plt, uncertainties, upper):
         bbox_to_anchor=(0.5, 0.05),
         ncol=3,
     )
+
+    _fig.savefig(
+        f"Effect_of_lower_thres_differential_classification_dual_threshold_n_{n_samples}_mean_tpm_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.png"
+    )
+    _fig
     return
 
 
 @app.cell(hide_code=True)
-def _(diff_cls_df_full, lower, np, plt, uncertainties):
+def _(
+    collapse_replicates_by,
+    diff_cls_df_full,
+    lower,
+    mean_TPM,
+    n_samples,
+    np,
+    plt,
+    uncertainties,
+):
     _uncert, _lower_thres = max(uncertainties), np.min(lower)
     _to_plot_df = (
         diff_cls_df_full.groupby(by=["uncertainty", "lower threshold"])
@@ -1231,7 +646,7 @@ def _(diff_cls_df_full, lower, np, plt, uncertainties):
     for _cat in ["NCI", "Intermediate", "AD"]:
         plt.plot(_to_plot_df.index, _to_plot_df[_cat], label=_cat)
 
-    plt.ylabel("Percentage within category differentially classified")
+    plt.ylabel("Number of subjects in category differentially classified")
     plt.title(
         f"Effect of changing upper threshold on differential classification, \nlower threshold = {_lower_thres}, uncertainty = {_uncert} %"
     )
@@ -1243,474 +658,10 @@ def _(diff_cls_df_full, lower, np, plt, uncertainties):
         bbox_to_anchor=(0.5, 0.05),
         ncol=3,
     )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""#### Which subjects flipped their classes (categories) under simulated noise?"""
+    _fig.savefig(
+        f"Effect_of_upper_thres_differential_classification_dual_threshold_n_{n_samples}_mean_tpm_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.png"
     )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo, uncertainties, uncertainty_range_slider):
-    uncertainty_slider = mo.ui.slider(
-        start=uncertainties[0],
-        stop=uncertainties[-1],
-        step=uncertainty_range_slider.step,
-        value=uncertainties[-1],
-        show_value=True,
-        label="Select uncertainty level",
-    )
-    mo.callout(uncertainty_slider)
-    return (uncertainty_slider,)
-
-
-@app.cell(hide_code=True)
-def _(mo, pd, res, uncertainty_slider):
-    _uncert = uncertainty_slider.value
-    _single_thres_label_dict = {0: "NCI", 1: "AD"}
-    _dual_thres_label_dict = {0: "NCI", 1: "Intermediate", 2: "AD"}
-
-    def get_display_df(
-        gt_labels: pd.Series,
-        pred_labels: pd.Series,
-        label_dict: dict[int, str],
-    ) -> pd.DataFrame:
-        display_df = pd.DataFrame(
-            [
-                gt_labels.apply(lambda x: label_dict[x]),
-                pred_labels.apply(lambda x: label_dict[x]),
-            ]
-        ).T
-        display_df.rename(columns={0: "No noise", 1: "With noise"}, inplace=True)
-        display_df.index.name = "Patient ID"
-        display_df["Category changed"] = (
-            display_df["No noise"] != display_df["With noise"]
-        )
-        return display_df
-
-    _tabs = mo.ui.tabs(
-        {
-            "Single threshold": get_display_df(
-                res.single_thres_gt_labels,
-                res.single_thres_pred_labels[_uncert],
-                _single_thres_label_dict,
-            ),
-            "Dual threshold": get_display_df(
-                res.dual_thres_gt_labels,
-                res.dual_thres_pred_labels[_uncert],
-                _dual_thres_label_dict,
-            ),
-        },
-        value="Subject-wise categories with and without simulated noise",
-    )
-    _tabs
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.callout(
-        mo.md(
-            "To observe the effects of filtering out genes with low mean TPM, please change the value in the interactive mean TPM cutoff slider. The plots will be regenerated automatically."
-        )
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""### Preliminary observations""")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    - RNA-Seq Measurement Uncertainty impacts differential classification predominantly at the classifier threshold. (Ref. Figure 4)
-    - Filtering out genes with low mean TPMs decreases the percentage of both AD and NCI subjects whose diagnostic classification changes when at least 10% of simulations mismatch. (Ref. Figure 2 and 3)
-    - These low-expression genes are a source of classification instability under uncertainty which need to be taken into account when building diagnostic classifications. (Ref. Figure 4)
-    - For a diagnostic classifier with two thresholds, (Ref. Figure 4) 
-        - An initial lab result might suggest a wait and watch approach.
-        - The demonstration of near-certain reclassification under typical measurement noise for this specific patient's result acts like a diagnostic stress test (i.e revealing high instability).
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""### Additional analysis on the Low TPM genes""")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    ///note
-    Set the "Mean TPM cutoff value" to a non-zero number to see the effect on the cells below.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    #### Distribution of TPM values
-
-    We want to check the distribution of simulated TPM values for low TPM genes in patients diagnosed as NCI.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(coefficients, mean_TPM, means, pathos_2, patients_df_1, patients_df_2):
-    low_tpm_patients_df = patients_df_1[means < mean_TPM]
-    low_tpm_coefficients = coefficients[means < mean_TPM]
-    _ad_patients = (pathos_2[pathos_2["Disease"] == "AD"]).index
-    low_tpm_patients_df = low_tpm_patients_df.drop(
-        columns=list(_ad_patients)
-    )  # Keep only NCI subjects but low TPM genes
-    full_set_patients_df = patients_df_1.drop(
-        columns=list(_ad_patients)
-    )  # Keep only NCI subjects but all genes
-    filtered_set_patients_df = patients_df_2.drop(
-        columns=list(_ad_patients)
-    )  # Keep only NCI subjects but high TPM genes
-    return (
-        filtered_set_patients_df,
-        full_set_patients_df,
-        low_tpm_coefficients,
-        low_tpm_patients_df,
-    )
-
-
-@app.cell(hide_code=True)
-def _(NumpyFloat32Array1D, np, pd):
-    from typing import Callable
-
-    from matplotlib.figure import Figure
-
-    from src.simulation import simulate_sampling_experiment
-
-    def generate_samples(
-        tpm_df: pd.DataFrame,
-        sampler: Callable[[float, float, int], NumpyFloat32Array1D],
-        uncertainty: int,
-        n_samples: int,
-        seed: int,
-    ) -> NumpyFloat32Array1D:
-        n_features, num_patients = tpm_df.shape[0], tpm_df.shape[1]
-        # Generate random number seed sequence for seeds for sampler
-        seed_seq = np.random.SeedSequence([654, seed])
-        all_samples = []
-        for j in range(num_patients):
-            samples = np.zeros((n_features, n_samples))
-
-            # Spawn n_feature seeds, one seed per feature
-            seeds = seed_seq.spawn(n_features)
-            for i in range(n_features):
-                mean = tpm_df.iloc[i, j]
-
-                # Generate Monte Carlo samples
-                samples[i] = sampler(mean, uncertainty / 100, n_samples, seeds[i])
-            all_samples.append(samples)
-        return np.hstack(all_samples).ravel()
-
-    return Figure, generate_samples, simulate_sampling_experiment
-
-
-@app.cell(hide_code=True)
-def _(
-    antilogit_classifier_score,
-    low_tpm_coefficients,
-    low_tpm_patients_df,
-    np,
-    pd,
-):
-    _z_scores = (
-        low_tpm_patients_df.values
-        - low_tpm_patients_df.mean(axis=1).values.reshape(-1, 1)
-    ) / low_tpm_patients_df.std(axis=1).values.reshape(-1, 1)
-    low_tpm_gt_probs = antilogit_classifier_score(
-        np.sum(low_tpm_coefficients[:, np.newaxis] * _z_scores, axis=0)
-    )
-    low_tpm_gt_probs = pd.Series(
-        index=low_tpm_patients_df.columns, data=low_tpm_gt_probs
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(Figure, NumpyFloat32Array1D, plt, sns):
-    def plot_histogram(
-        data_1: NumpyFloat32Array1D,
-        data_2: NumpyFloat32Array1D,
-        *,
-        xlabel: str,
-        label_1: str,
-        label_2: str,
-        fig_title: str,
-        uncertainty: int,
-        nbins: int | None = 30,
-    ) -> Figure:
-        fig, ax = plt.subplots(figsize=(12, 8))
-        sns.histplot(
-            data_1,
-            color="b",
-            alpha=0.3,
-            fill=True,
-            bins=nbins,
-            stat="density",
-            label=label_1,
-            ax=ax,
-        )
-        sns.histplot(
-            data_2,
-            color="r",
-            alpha=0.3,
-            fill=True,
-            bins=nbins,
-            stat="density",
-            label=label_2,
-            ax=ax,
-        )
-        plt.xlabel(xlabel)
-        plt.ylabel("Density")
-        plt.legend(loc="best")
-        plt.title(
-            f"Histogram of {fig_title} from \n{label_1} and {label_2} at {uncertainty}% simulated uncertainty."
-        )
-        return fig
-
-    return (plot_histogram,)
-
-
-@app.cell(hide_code=True)
-def _(
-    generate_samples,
-    low_tpm_patients_df,
-    master_seed,
-    n_samples,
-    plt,
-    sampler,
-    sns,
-    uncertainties,
-):
-    _uncert = uncertainties[-1]
-    low_tpm_patients_samples = generate_samples(
-        low_tpm_patients_df, sampler, uncertainties[-1], n_samples, master_seed
-    )
-    _nbins = 30
-    _fig, _ax = plt.subplots(figsize=(12, 8))
-    sns.histplot(
-        low_tpm_patients_samples,
-        color="b",
-        alpha=0.3,
-        fill=True,
-        bins=_nbins,
-        stat="density",
-        ax=_ax,
-    )
-    plt.xlabel("TPM values")
-    plt.ylabel("Density")
-    plt.title("Histogram of simulated TPM values from low TPM genes of NCI patients")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    #### Does removing low TPM genes increase differential classification of NCI subjects?
-
-    We want to test the hypothesis that removing them causes increased differential classification of patients in the NCI category.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(
-    coefficients,
-    coefficients_1,
-    dual_thres_high,
-    dual_thres_low,
-    filtered_set_patients_df,
-    full_set_patients_df,
-    master_seed,
-    n_samples,
-    plot_histogram,
-    sampler,
-    simulate_sampling_experiment,
-    single_thres,
-    uncertainties,
-):
-    _uncert = uncertainties[-1]
-    (
-        _,
-        _,
-        unfiltered_neg_subscores,
-        unfiltered_pos_subscores,
-        _,
-        unfiltered_probs,
-    ) = simulate_sampling_experiment(
-        full_set_patients_df,
-        sampler,
-        dual_thres_1=dual_thres_low,
-        dual_thres_2=dual_thres_high,
-        single_thres=single_thres,
-        diff_class_lim=int(0.1 * n_samples),
-        uncertainty=_uncert,
-        n_samples=n_samples,
-        coefficients=coefficients,
-        seed=master_seed,
-    )
-    _, _, filtered_neg_subscores, filtered_pos_subscores, _, filtered_probs = (
-        simulate_sampling_experiment(
-            filtered_set_patients_df,
-            sampler,
-            dual_thres_1=dual_thres_low,
-            dual_thres_2=dual_thres_high,
-            single_thres=single_thres,
-            diff_class_lim=int(0.1 * n_samples),
-            uncertainty=_uncert,
-            n_samples=n_samples,
-            coefficients=coefficients_1,
-            seed=master_seed,
-        )
-    )
-
-    plot_histogram(
-        filtered_probs,
-        unfiltered_probs,
-        xlabel="Classifier scores (probabilities)",
-        label_1="Filtered dataset",
-        label_2="Unfiltered dataset",
-        fig_title="classifier scores",
-        uncertainty=_uncert,
-    )
-    return (
-        filtered_neg_subscores,
-        filtered_pos_subscores,
-        unfiltered_neg_subscores,
-        unfiltered_pos_subscores,
-    )
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    #### What percent of TPM values in low TPM genes among NCI subjects are "Null" values?
-
-    In the original dataset, the TPM values that were missing must have been imputed with 0 to avoid calculation errors. Since the present dataset actually does not have null values, but while generation had all TPM values less than 5 removed, we *assume* that **all TPM values that are zero were previously missing or were considered insignificant**. Getting the proportion of such values for every low TPM gene within NCI patients will help us pinpoint the degree of noise they add to the data.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(low_tpm_patients_df):
-    _percent_missing_low_tpm_genes = (
-        low_tpm_patients_df.apply(lambda x: x == 0).sum(axis=1)
-        / low_tpm_patients_df.shape[1]
-        * 100
-    )  # Convert to %
-    _percent_missing_low_tpm_genes.name = "Percent missing values from NCI subjects"
-    _percent_missing_low_tpm_genes.index.name = "gene"
-    _percent_missing_low_tpm_genes.sort_values(ascending=False)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-    #### How many of the low TPM genes had positive coefficients and negative coefficients?
-
-    We want to see if removing the low TPM genes removes an equal number of genes with positive and negative coefficients.
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(low_tpm_coefficients, mo):
-    mo.md(
-        rf"""
-    - Number of negative coefficient genes = {(low_tpm_coefficients < 0).sum()}
-    - Number of positive coefficient genes = {(low_tpm_coefficients >= 0).sum()}
-    """
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""#### Did filtering out low TPM genes reduce the contribution of "resilience" factors to the aggregated classifier score?"""
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(
-    filtered_neg_subscores,
-    filtered_pos_subscores,
-    mo,
-    np,
-    plot_histogram,
-    uncertainties,
-    unfiltered_neg_subscores,
-    unfiltered_pos_subscores,
-):
-    _uncert = uncertainties[-1]
-    _unfiltered_neg_subscore_fracs = np.abs(unfiltered_neg_subscores) / (
-        np.abs(unfiltered_neg_subscores) + np.abs(unfiltered_pos_subscores)
-    )
-    _filtered_neg_subscore_fracs = np.abs(filtered_neg_subscores) / (
-        np.abs(filtered_neg_subscores) + np.abs(filtered_pos_subscores)
-    )
-
-    _tabs = mo.ui.tabs(
-        {
-            "Positive subscores": plot_histogram(
-                1 - _filtered_neg_subscore_fracs,
-                1 - _unfiltered_neg_subscore_fracs,
-                xlabel="Classifier positive subscores fraction (contribution from genes with positive coefficients)",
-                label_1="Filtered dataset",
-                label_2="Unfiltered dataset",
-                fig_title="classifier positive subscores fraction",
-                uncertainty=_uncert,
-            ),
-            "Negative subscores": plot_histogram(
-                _filtered_neg_subscore_fracs,
-                _unfiltered_neg_subscore_fracs,
-                xlabel="Classifier negative subscores fraction (contribution from genes with negative coefficients)",
-                label_1="Filtered dataset",
-                label_2="Unfiltered dataset",
-                fig_title="classifier negative subscores fraction",
-                uncertainty=_uncert,
-            ),
-        },
-        value="Effect of filtering on subscore contributions to classifier score",
-    )
-    _tabs
-    return
-
-
-@app.cell(hide_code=True)
-def _(gt_probs):
-    gt_probs
+    _fig
     return
 
 
