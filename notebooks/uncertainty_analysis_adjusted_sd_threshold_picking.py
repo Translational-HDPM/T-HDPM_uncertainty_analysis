@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.17"
+__generated_with = "0.15.0"
 app = marimo.App(width="full")
 
 
@@ -515,9 +515,14 @@ def _(
 
     lower = np.array([0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
     upper = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.99])
+    uncertainties_to_simulate = uncertainties[-1:]
     name = f"differential_classification_dual_threshold_n_{n_samples}_mean_tpm_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.csv"
-    if Path(name).exists():
-        diff_cls_df_full = pd.read_csv(name)
+    save_root_dir = Path(__file__).parent.parent / "generated_data"
+    save_root_dir.mkdir(exist_ok=True)
+    csv_save_path = save_root_dir / name
+
+    if csv_save_path.exists():
+        diff_cls_df_full = pd.read_csv(csv_save_path)
     else:
         diff_cls_df_full = pd.DataFrame(
             columns=[
@@ -536,7 +541,7 @@ def _(
                 _res = simulate_multiple_uncertainties(
                     patients_df_2,
                     sampler,
-                    uncertainties[-1:],
+                    uncertainties_to_simulate,
                     thres_low=thres_low,
                     thres_high=thres_high,
                     single_thres=thres_low,
@@ -572,11 +577,11 @@ def _(
                         "AD": int(_ad if not math.isnan(_ad) else 0),
                     }
                     _idx += 1
-                diff_cls_df_full.to_csv(name)
+                diff_cls_df_full.to_csv(csv_save_path)
                 print(
-                    f"It. {_idx}, low = {thres_low}, high = {thres_high}: Saved CSV to {name}."
+                    f"It. {_idx}, low = {thres_low}, high = {thres_high}: Saved CSV to {str(csv_save_path)}."
                 )
-    return diff_cls_df_full, lower, upper
+    return diff_cls_df_full, lower, save_root_dir, upper
 
 
 @app.cell(hide_code=True)
@@ -587,6 +592,7 @@ def _(
     n_samples,
     np,
     plt,
+    save_root_dir,
     uncertainties,
     upper,
 ):
@@ -601,7 +607,7 @@ def _(
     _fig = plt.figure(figsize=(10, 6))
     for _cat in ["NCI", "Intermediate", "AD"]:
         plt.plot(_to_plot_df.index, _to_plot_df[_cat], label=_cat)
-
+    plt.ylim([0, 100])
     plt.ylabel("Number of subjects in category differentially classified")
     plt.title(
         f"Effect of changing lower threshold on differential classification, \nupper threshold = {_upper_thres}, uncertainty = {_uncert} %"
@@ -616,7 +622,8 @@ def _(
     )
 
     _fig.savefig(
-        f"Effect_of_lower_thres_differential_classification_dual_threshold_n_{n_samples}_mean_tpm_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.png"
+        save_root_dir
+        / f"Effect_of_lower_thres_differential_classification_dual_threshold_n_{n_samples}_mean_tpm_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.png"
     )
     _fig
     return
@@ -631,6 +638,7 @@ def _(
     n_samples,
     np,
     plt,
+    save_root_dir,
     uncertainties,
 ):
     _uncert, _lower_thres = max(uncertainties), np.min(lower)
@@ -646,6 +654,7 @@ def _(
     for _cat in ["NCI", "Intermediate", "AD"]:
         plt.plot(_to_plot_df.index, _to_plot_df[_cat], label=_cat)
 
+    plt.ylim([0, 100])
     plt.ylabel("Number of subjects in category differentially classified")
     plt.title(
         f"Effect of changing upper threshold on differential classification, \nlower threshold = {_lower_thres}, uncertainty = {_uncert} %"
@@ -659,9 +668,121 @@ def _(
         ncol=3,
     )
     _fig.savefig(
-        f"Effect_of_upper_thres_differential_classification_dual_threshold_n_{n_samples}_mean_tpm_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.png"
+        save_root_dir
+        / f"Effect_of_upper_thres_differential_classification_dual_threshold_n_{n_samples}_mean_tpm_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.png"
     )
     _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(coefficients_1, np, patients_df_2, pd):
+    from src.logreg_classifier import antilogit_classifier_score
+
+    _z_scores = (
+        patients_df_2.values - patients_df_2.mean(axis=1).values.reshape(-1, 1)
+    ) / patients_df_2.std(axis=1).values.reshape(-1, 1)
+    gt_probs = antilogit_classifier_score(
+        np.sum(coefficients_1[:, np.newaxis] * _z_scores, axis=0)
+    )
+    gt_probs = pd.Series(index=patients_df_2.columns, data=gt_probs)
+    return (gt_probs,)
+
+
+@app.cell(hide_code=True)
+def _(gt_probs, np, plt, save_root_dir):
+    _sorted_probs = gt_probs.sort_values()
+    _lower_thres, _upper_thres = 0.10, 0.90
+
+    def _select_label(
+        prob: float,
+        lower_thres: float = _lower_thres,
+        upper_thres: float = _upper_thres,
+    ) -> str:
+        if prob < lower_thres:
+            return "NCI"
+        elif prob < upper_thres:
+            return "Intermediate"
+        else:
+            return "AD"
+
+    _labels = _sorted_probs.map(_select_label)
+    _fig = plt.figure(figsize=(10, 6))
+    _acc = 0
+    for _label, _color in zip(["NCI", "Intermediate", "AD"], "bkr"):
+        _subset = _labels == _label
+        _y = _sorted_probs.loc[_subset]
+        plt.scatter(
+            np.arange(_acc, _acc + len(_y)),
+            _y,
+            c=_color,
+            label=_label,
+        )
+        _acc += len(_y)
+    plt.xlabel("Patient")
+    plt.ylabel("Classifier score (probability)")
+    plt.legend()
+    plt.title(
+        f"Classifier scores for dual threshold classification\nat lower threshold {_lower_thres} and upper threshold {_upper_thres}"
+    )
+    _fig.text(
+        0.25,
+        -0.05,
+        "Classifier predictions: "
+        + "".join(
+            [
+                f"{_label} = {(_labels == _label).sum()} "
+                for _label in ["NCI", "Intermediate", "AD"]
+            ]
+        ),
+        bbox=dict(facecolor="none", edgecolor="k"),
+    )
+    _fig.savefig(save_root_dir / "classifier_scores.png")
+    _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(
+    collapse_replicates_by,
+    gt_probs,
+    mean_TPM,
+    n_samples,
+    pathos_2,
+    plt,
+    save_root_dir,
+):
+    import seaborn as sns
+
+    ad_probs = gt_probs[pathos_2[pathos_2["Disease"] == "AD"].index]
+    nci_probs = gt_probs[pathos_2[pathos_2["Disease"] == "NCI"].index]
+
+    plt.figure(figsize=(10, 8))
+    sns.histplot(
+        ad_probs,
+        color="r",
+        bins=30,
+        label="AD",
+        fill=True,
+        alpha=0.3,
+    )
+    sns.histplot(
+        nci_probs,
+        color="b",
+        bins=30,
+        label="NCI",
+        fill=True,
+        alpha=0.3,
+    )
+    plt.xlim([0.0, 1.0])
+    plt.xlabel("Classifier score (probability)")
+    plt.ylabel("Number of subjects")
+    plt.legend()
+    plt.savefig(
+        save_root_dir
+        / f"histogram of classifier scores_n_{n_samples}_mean_tpm_cutoff_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.png"
+    )
+    plt.show()
     return
 
 
