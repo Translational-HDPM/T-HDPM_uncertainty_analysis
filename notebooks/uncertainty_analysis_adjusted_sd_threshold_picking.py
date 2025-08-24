@@ -515,7 +515,7 @@ def _(
 
     lower = np.array([0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
     upper = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.99])
-    uncertainties_to_simulate = uncertainties[-1:]
+    uncertainties_to_simulate = uncertainties[:]
     name = f"differential_classification_dual_threshold_n_{n_samples}_mean_tpm_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.csv"
     save_root_dir = Path(__file__).parent.parent / "generated_data"
     save_root_dir.mkdir(exist_ok=True)
@@ -585,7 +585,21 @@ def _(
 
 
 @app.cell(hide_code=True)
+def _(mo):
+    cat_select = mo.ui.dropdown(
+        options=["NCI", "Intermediate", "AD", "all"],
+        value="all",
+        allow_select_none=False,
+        label="Select categories to plot: ",
+    )
+    show_lines_switch = mo.ui.switch(value=False, label="Show lines? ")
+    mo.vstack([cat_select, show_lines_switch])
+    return cat_select, show_lines_switch
+
+
+@app.cell(hide_code=True)
 def _(
+    cat_select,
     collapse_replicates_by,
     diff_cls_df_full,
     mean_TPM,
@@ -593,29 +607,63 @@ def _(
     np,
     plt,
     save_root_dir,
+    show_lines_switch,
     uncertainties,
     upper,
 ):
-    _uncert, _upper_thres = max(uncertainties), np.max(upper)
-    _to_plot_df = (
-        diff_cls_df_full.groupby(by=["uncertainty", "upper threshold"])
-        .get_group((_uncert, _upper_thres))[
-            ["lower threshold", "NCI", "Intermediate", "AD"]
-        ]
-        .set_index("lower threshold")
-    )
+    cats = None
+    if cat_select.value in ["NCI", "Intermediate", "AD"]:
+        cats = [cat_select.value]
+    elif cat_select.value == "all":
+        cats = ["NCI", "Intermediate", "AD"]
+
+    _upper_thres = np.max(upper)
+    _cmap = {"NCI": "blue", "Intermediate": "yellow", "AD": "red"}
+
     _fig = plt.figure(figsize=(10, 6))
-    for _cat in ["NCI", "Intermediate", "AD"]:
-        plt.plot(_to_plot_df.index, _to_plot_df[_cat], label=_cat)
+    for _cat in cats:
+        _plot_data = []
+        for _uncert in uncertainties:
+            _to_plot_df = (
+                diff_cls_df_full.groupby(by=["uncertainty", "upper threshold"])
+                .get_group((_uncert, _upper_thres))[
+                    ["lower threshold", "NCI", "Intermediate", "AD"]
+                ]
+                .set_index("lower threshold")
+            )
+            _plot_data.append(_to_plot_df[_cat])
+            if show_lines_switch.value:
+                plt.plot(
+                    _to_plot_df.index,
+                    _to_plot_df[_cat],
+                    label=_cat,
+                    color=_cmap[_cat],
+                    alpha=0.1,
+                )
+        _data = np.vstack(_plot_data)
+        _mins = np.min(_data, axis=0)
+        _maxs = np.max(_data, axis=0)
+        plt.fill_between(
+            _to_plot_df.index,
+            _mins,
+            _maxs,
+            facecolor=_cmap[_cat],
+            alpha=0.5,
+            label=_cat,
+        )
     plt.ylim([0, 100])
     plt.ylabel("Number of subjects in category differentially classified")
     plt.title(
-        f"Effect of changing lower threshold on differential classification, \nupper threshold = {_upper_thres}, uncertainty = {_uncert} %"
+        f"Effect of changing lower threshold on differential classification, \nupper threshold = {_upper_thres}, uncertainties {min(uncertainties)} -{max(uncertainties)} %"
     )
     _leg_handles, _leg_labels = plt.gca().get_legend_handles_labels()
     _fig.legend(
-        _leg_handles,
-        _leg_labels,
+        _leg_handles
+        if not show_lines_switch.value
+        else _leg_handles[len(uncertainties) :: len(uncertainties) + 1],
+        _leg_labels
+        if not show_lines_switch.value
+        else _leg_labels[len(uncertainties) :: len(uncertainties) + 1],
         loc="upper center",
         bbox_to_anchor=(0.5, 0.05),
         ncol=3,
@@ -626,11 +674,12 @@ def _(
         / f"Effect_of_lower_thres_differential_classification_dual_threshold_n_{n_samples}_mean_tpm_{mean_TPM}_collapse_replicates_by_{collapse_replicates_by}.png"
     )
     _fig
-    return
+    return (cats,)
 
 
 @app.cell(hide_code=True)
 def _(
+    cats,
     collapse_replicates_by,
     diff_cls_df_full,
     lower,
@@ -639,30 +688,57 @@ def _(
     np,
     plt,
     save_root_dir,
+    show_lines_switch,
     uncertainties,
 ):
-    _uncert, _lower_thres = max(uncertainties), np.min(lower)
-    _to_plot_df = (
-        diff_cls_df_full.groupby(by=["uncertainty", "lower threshold"])
-        .get_group((_uncert, _lower_thres))[
-            ["upper threshold", "NCI", "Intermediate", "AD"]
-        ]
-        .set_index("upper threshold")
-    )
+    _lower_thres = np.min(lower)
+    _cmap = {"NCI": "blue", "Intermediate": "yellow", "AD": "red"}
     plt.figure(figsize=(10, 6))
     _fig = plt.figure(figsize=(10, 6))
-    for _cat in ["NCI", "Intermediate", "AD"]:
-        plt.plot(_to_plot_df.index, _to_plot_df[_cat], label=_cat)
+    for _cat in cats:
+        _plot_data = []
+        for _uncert in uncertainties:
+            _to_plot_df = (
+                diff_cls_df_full.groupby(by=["uncertainty", "lower threshold"])
+                .get_group((_uncert, _lower_thres))[
+                    ["upper threshold", "NCI", "Intermediate", "AD"]
+                ]
+                .set_index("upper threshold")
+            )
+            _plot_data.append(_to_plot_df[_cat])
+            if show_lines_switch.value:
+                plt.plot(
+                    _to_plot_df.index,
+                    _to_plot_df[_cat],
+                    label=_cat,
+                    color=_cmap[_cat],
+                    alpha=0.1,
+                )
+            _data = np.vstack(_plot_data)
+            _mins = np.min(_data, axis=0)
+            _maxs = np.max(_data, axis=0)
+        plt.fill_between(
+            _to_plot_df.index,
+            _mins,
+            _maxs,
+            facecolor=_cmap[_cat],
+            alpha=0.5,
+            label=_cat,
+        )
 
     plt.ylim([0, 100])
     plt.ylabel("Number of subjects in category differentially classified")
     plt.title(
-        f"Effect of changing upper threshold on differential classification, \nlower threshold = {_lower_thres}, uncertainty = {_uncert} %"
+        f"Effect of changing upper threshold on differential classification, \nlower threshold = {_lower_thres}, uncertainties {min(uncertainties)} -{max(uncertainties)} %"
     )
     _leg_handles, _leg_labels = plt.gca().get_legend_handles_labels()
     _fig.legend(
-        _leg_handles,
-        _leg_labels,
+        _leg_handles
+        if not show_lines_switch.value
+        else _leg_handles[len(uncertainties) :: len(uncertainties) + 1],
+        _leg_labels
+        if not show_lines_switch.value
+        else _leg_labels[len(uncertainties) :: len(uncertainties) + 1],
         loc="upper center",
         bbox_to_anchor=(0.5, 0.05),
         ncol=3,
