@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.16"
+__generated_with = "0.17.0"
 app = marimo.App()
 
 
@@ -359,7 +359,7 @@ def _(np):
     return (calculate_scaled_sd,)
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
     def sampler(
         tpm: float,
@@ -746,12 +746,13 @@ def _(mo, patient_id_w_replicates_col_slider):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(
     NumpyFloat32Array1D,
     a_slider,
     b_slider,
     c_slider,
+    master_seed,
     np,
     pd,
     sampler,
@@ -766,12 +767,14 @@ def _(
         b_val: float = b_slider.value,
         c_val: float = c_slider.value,
         scaling_factor: float = scaling_factor_slider.value,
+        seed: int = master_seed,
     ) -> NumpyFloat32Array1D:
         """
         Helper function to generate a simulated technical replicate for a given subject.
         """
         tpm_vals = df[patient_id]
         ret = np.zeros_like(tpm_vals)
+        rng = np.random.default_rng(seed)
         for i, tpm in enumerate(tpm_vals):
             ret[i] = sampler(
                 tpm,
@@ -781,6 +784,7 @@ def _(
                 b_val=b_val,
                 c_val=c_val,
                 scaling_factor=scaling_factor,
+                seed=rng.integers(len(tpm_vals)),
             )[0]
         return ret
 
@@ -809,6 +813,8 @@ def _(
     cols_with_replicates,
     get_loa,
     get_simulated_replicate,
+    master_seed,
+    np,
     patient_id_w_replicates_col_slider,
     patients_df,
     patients_df_2,
@@ -823,12 +829,17 @@ def _(
         uncertainties[len(uncertainties) // 2],
         uncertainties[-1],
     )
+    _rng = np.random.default_rng(master_seed)
     _y_min, _y_max = float("inf"), -float("inf")
     for _i, _uncert in enumerate([_uncert_low, _uncert_mid, _uncert_high]):
         plt.subplot(1, 4, _i + 1)
         _meas_1, _meas_2 = (
-            patients_df_2[_col],
-            get_simulated_replicate(patients_df_2, _col, _uncert),
+            get_simulated_replicate(
+                patients_df_2, _col, _uncert, seed=int(_rng.integers(master_seed))
+            ),
+            get_simulated_replicate(
+                patients_df_2, _col, _uncert, seed=int(_rng.integers(master_seed))
+            ),
         )
         plot_bland_altman(
             _meas_1,
