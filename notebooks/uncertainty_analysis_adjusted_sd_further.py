@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.15.0"
+__generated_with = "0.17.0"
 app = marimo.App(width="full")
 
 
@@ -702,6 +702,21 @@ def _(single_thres, threshold_step_slider):
 
 
 @app.cell(hide_code=True)
+def _(dual_thres_high, dual_thres_low, gt_probs, mo):
+    _num_NCI, _num_interm, _num_AD = (
+        (gt_probs < dual_thres_low).sum(),
+        ((dual_thres_low <= gt_probs) & (gt_probs < dual_thres_high)).sum(),
+        (dual_thres_high <= gt_probs).sum(),
+    )
+    mo.callout(
+        mo.md(
+            rf"""AD = {_num_AD / len(gt_probs) * 100:.2f} %, Intermediate = {_num_interm / len(gt_probs) * 100:.2f} %, NCI = {_num_NCI / len(gt_probs) * 100:.2f} %"""
+        )
+    )
+    return
+
+
+@app.cell(hide_code=True)
 def _(
     calculate_sensitivity_specificity_and_predictive_values,
     dual_thres_high,
@@ -934,7 +949,36 @@ def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
         scaled_sd = calculate_scaled_sd(tpm, baseline_rsd * 100)
         return np.pow(2.0, rng.normal(np.log2(tpm + 1), scaled_sd, n_points))
 
-    return (sampler,)
+    def sampler_gaussian(
+        tpm: float,
+        baseline_rsd: float,
+        n_points: int = 1000,
+        seed: int | None = None,
+    ) -> NumpyFloat32Array1D:
+        """
+        Function to generate Monte Carlo TPM samples given a TPM value and a
+        baseline uncertainty value.
+
+        Parameters
+        ----------
+        tpm
+            TPM value to generate simulated TPM values from.
+        baseline_rsd
+            Reference uncertainty value. Must be between 0 and 1.
+        n_points
+            Number of simulated TPM values to generate. Defaults to 1000.
+        seed
+            Seed for random number generator. Default is None.
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.float32]]
+            1D numpy array of floating point values representing TPM samples.
+        """
+        rng = np.random.default_rng(seed)
+        return rng.normal(tpm, baseline_rsd * tpm, n_points)
+
+    return sampler, sampler_gaussian
 
 
 @app.cell(hide_code=True)
@@ -946,14 +990,14 @@ def _(
     n_samples,
     num_parallel_workers,
     patients_df_2,
-    sampler,
+    sampler_gaussian,
     simulate_multiple_uncertainties,
     single_thres,
     uncertainties,
 ):
     res = simulate_multiple_uncertainties(
         patients_df_2,
-        sampler,
+        sampler_gaussian,
         uncertainties,
         thres_low=dual_thres_low,
         thres_high=dual_thres_high,
@@ -989,11 +1033,45 @@ def _(
         gt_labels_dual_thres=res.dual_thres_gt_labels,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
         pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
-        single_thres_plot_title=f"(a) Single threshold, specificity: {ad_spec:.2f} % AD",
+        # single_thres_plot_title=f"(a) Single threshold, specificity: {ad_spec:.2f} % AD",
+        single_thres_plot_title=f"Single threshold, specificity: {ad_spec:.2f} % AD",
         dual_thres_plot_title=f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
-        figure_title="Figure 2. Differential classification for levels of uncertainty"
-        + f" ({min(uncertainties)}-{max(uncertainties)}%)\n"
-        + "(at least 10% simulated scores mismatch)",
+        figure_title="Differential classification for levels of uncertainty"
+        + f" ({min(uncertainties)}-{max(uncertainties)}%)",
+        # + "\n(at least 10% simulated scores mismatch)",
+        y_lim_low=0.0,
+        y_lim_high=12.0,
+    )
+    return
+
+
+@app.cell
+def _(res):
+    print(
+        "NCI = ",
+        (res.single_thres_gt_labels == 0).sum(),
+        "AD = ",
+        (res.single_thres_gt_labels == 1).sum(),
+    )
+    print(
+        "NCI = ",
+        (res.dual_thres_gt_labels == 0).sum(),
+        "Intermediate = ",
+        (res.dual_thres_gt_labels == 1).sum(),
+        "AD = ",
+        (res.dual_thres_gt_labels == 2).sum(),
+    )
+    return
+
+
+@app.cell
+def _(res):
+    from src.postprocessing import get_differential_classification
+
+    get_differential_classification(
+        res.dual_thres_gt_labels,
+        res.dual_thres_pred_labels,
+        ["NCI", "Intermediate", "AD"],
     )
     return
 
@@ -1042,11 +1120,14 @@ def _(
         gt_labels_dual_thres=res.dual_thres_gt_labels,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
         pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
-        single_thres_plot_title=f"(a) Single threshold, specificity: {ad_spec:.2f} % AD",
+        # single_thres_plot_title=f"(a) Single threshold, specificity: {ad_spec:.2f} % AD",
+        single_thres_plot_title=f"Single threshold, specificity: {ad_spec:.2f} % AD",
         dual_thres_plot_title=f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
-        figure_title="Figure 3. Jaccard index plot showing differential classification"
-        + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %) \n"
-        + "(at least 10% simulated scores mismatch)",
+        figure_title="Jaccard index plot showing differential classification\n"
+        + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %)",
+        # + " \n(at least 10% simulated scores mismatch)",
+        y_lim_low=0.8,
+        y_lim_high=1.0,
     )
     return
 
@@ -1088,23 +1169,20 @@ def _(calculate_subject_wise_agreement, n_samples, res, uncertainties):
         uncertainties=uncertainties,
         n_samples=n_samples,
     )
-    dual_thres_subj_wise_agreement = calculate_subject_wise_agreement(
-        gt_series_dict=res.dual_thres_gt_series,
-        pred_series_dict=res.dual_thres_pred_series,
-        uncertainties=uncertainties,
-        n_samples=n_samples,
-    )
-    return dual_thres_subj_wise_agreement, single_thres_subj_wise_agreement
+    # dual_thres_subj_wise_agreement = calculate_subject_wise_agreement(
+    #     gt_series_dict=res.dual_thres_gt_series,
+    #     pred_series_dict=res.dual_thres_pred_series,
+    #     uncertainties=uncertainties,
+    #     n_samples=n_samples,
+    # )
+    return (single_thres_subj_wise_agreement,)
 
 
 @app.cell(hide_code=True)
 def _(
     GridSpec,
     ad_spec,
-    ad_spec_high,
-    dual_thres_subj_wise_agreement,
     gt_probs,
-    nci_spec_low,
     pathos_2,
     plot_v_plot,
     plt,
@@ -1114,35 +1192,40 @@ def _(
 ):
     ad_probs = gt_probs[pathos_2[pathos_2["Disease"] == "AD"].index]
     nci_probs = gt_probs[pathos_2[pathos_2["Disease"] == "NCI"].index]
-    fig = plt.figure(figsize=(18, 10))
-    gs = GridSpec(2, 2, height_ratios=[1, 1])
+    fig = plt.figure(figsize=(10, 10))
+    # _nrows, _ncols = 2, 2
+    _nrows, _ncols = 2, 1
+    gs = GridSpec(_nrows, _ncols, height_ratios=[1, 1])
     fig.add_subplot(gs[0])
     plot_v_plot(
         single_thres_subj_wise_agreement,
         gt_probs,
-        uncertainties,
-        f"(a) Single threshold, specificity: {ad_spec:.2f}% AD",
+        # uncertainties,
+        [5, 25, 35],
+        # f"(a) Single threshold, specificity: {ad_spec:.2f}% AD",
+        f"Single threshold, specificity: {ad_spec:.2f}% AD",
         False,
         False,
     )
     plt.xlim([0.0, 1.0])
     plt.ylabel("Percent agreement between simulated and\n inferent scores for subjects")
     plt.gca().set_xticklabels([])
-    fig.add_subplot(gs[1])
-    plot_v_plot(
-        dual_thres_subj_wise_agreement,
-        gt_probs,
-        uncertainties,
-        f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
-        False,
-        False,
-    )
-    plt.xlim([0.0, 1.0])
-    plt.gca().set_xticklabels([])
-    plt.gca().set_yticklabels([])
-    plt.ylabel("")
+    # fig.add_subplot(gs[1])
+    # plot_v_plot(
+    #     dual_thres_subj_wise_agreement,
+    #     gt_probs,
+    #     uncertainties,
+    #     f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
+    #     False,
+    #     False,
+    # )
+    # plt.xlim([0.0, 1.0])
+    # plt.gca().set_xticklabels([])
+    # plt.gca().set_yticklabels([])
+    # plt.ylabel("")
     leg_handles, leg_labels = plt.gca().get_legend_handles_labels()
-    for i in [3, 4]:
+    # for i in [3, 4]:
+    for i in [2]:
         fig.add_subplot(gs[i - 1])
         sns.histplot(
             ad_probs,
@@ -1176,18 +1259,18 @@ def _(
         leg_handles_2,
         leg_labels_2,
         loc="upper center",
-        bbox_to_anchor=(0.5, -0.07),
+        bbox_to_anchor=(0.5, 0.02),
         ncol=len(uncertainties) // 2,
     )
     fig.text(0.5, 0.07, "Probability score", va="center", ha="center")
     fig.suptitle(
-        "Figure 4. V-plot showing agreement between simulated and inferent scores"
+        "V-plot showing agreement between simulated and inferent scores\n"
         + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)}%)",
         fontsize=14,
     )
     fig.text(
         0.1,
-        -0.15,
+        -0.025,
         "*The histograms below the v-plots show the distribution of classifier probability scores",
         ha="left",
         va="center",
