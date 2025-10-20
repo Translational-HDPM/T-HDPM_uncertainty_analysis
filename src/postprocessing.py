@@ -793,6 +793,8 @@ def plot_jaccard_index_plot(
     dual_thres_plot_title: str,
     figure_title: str,
     save: bool = False,
+    y_lim_low: float | None = None,
+    y_lim_high: float | None = None,
 ) -> Figure:
     """
     Generates a figure with two subplots, each showing the Jaccard index for
@@ -829,6 +831,10 @@ def plot_jaccard_index_plot(
     save
         If True, the figure is saved to a PNG file named after the
         `figure_title`. Default is False.
+    y_lim_low
+        Lower limit of y axis values. Default is None.
+    y_lim_high
+        Upper limit of y axis values. Default is None.
 
     Returns
     -------
@@ -850,8 +856,11 @@ def plot_jaccard_index_plot(
             raise ValueError(
                 f"Difference in linestyle between single and dual threshold plots for label '{label}'"
             )
-    fig, axs = plt.subplots(figsize=(16, 7), nrows=1, ncols=2, sharex=True, sharey=True)
-    plt.subplot(121)
+    nrows, ncols = 1, 1
+    fig, axs = plt.subplots(
+        figsize=(8, 7), nrows=nrows, ncols=ncols, sharex=True, sharey=True
+    )
+    plt.subplot(nrows, ncols, 1)
     jac_idx_df = calculate_jaccard_index(
         labels=list(labels_dict_single_thres.keys()),
         gt_labels=gt_labels_single_thres,
@@ -865,26 +874,28 @@ def plot_jaccard_index_plot(
             label=col,
             color=labels_dict_single_thres[col],
         )
-
+    plt.xlim(np.min(x_vals), np.max(x_vals))
+    if y_lim_low and y_lim_high:
+        plt.ylim(y_lim_low, y_lim_high)
     plt.title(single_thres_plot_title)
 
-    plt.subplot(122)
-    jac_idx_df = calculate_jaccard_index(
-        labels=list(labels_dict_dual_thres.keys()),
-        gt_labels=gt_labels_dual_thres,
-        pred_labels_dict=pred_labels_dict_dual_thres,
-    )
-    x_vals = np.sort(jac_idx_df.index.values)
-    for col in jac_idx_df.columns:
-        plt.plot(
-            x_vals,
-            jac_idx_df.loc[x_vals, col],
-            label=col,
-            color=labels_dict_dual_thres[col],
-        )
-    plt.title(dual_thres_plot_title)
+    # plt.subplot(nrows, ncols, 2)
+    # jac_idx_df = calculate_jaccard_index(
+    #     labels=list(labels_dict_dual_thres.keys()),
+    #     gt_labels=gt_labels_dual_thres,
+    #     pred_labels_dict=pred_labels_dict_dual_thres,
+    # )
+    # x_vals = np.sort(jac_idx_df.index.values)
+    # for col in jac_idx_df.columns:
+    #     plt.plot(
+    #         x_vals,
+    #         jac_idx_df.loc[x_vals, col],
+    #         label=col,
+    #         color=labels_dict_dual_thres[col],
+    #     )
+    # plt.title(dual_thres_plot_title)
     fig.text(
-        0.09,
+        0.05,
         0.5,
         "Jaccard index",
         va="center",
@@ -918,6 +929,8 @@ def plot_differential_classification_results(
     dual_thres_plot_title: str,
     figure_title: str,
     save: bool = False,
+    y_lim_low: float | None = None,
+    y_lim_high: float | None = None,
 ) -> Figure:
     """
     Plots differential classification results for single and dual threshold scenarios.
@@ -955,6 +968,10 @@ def plot_differential_classification_results(
     save
         If True, the figure is saved to a PNG file named after the
         `figure_title`. Default is False.
+    y_lim_low
+        Lower limit of y axis values. Default is None.
+    y_lim_high
+        Upper limit of y axis values. Default is None.
 
     Raises
     ------
@@ -976,9 +993,13 @@ def plot_differential_classification_results(
             raise ValueError(
                 f"Difference in linestyle between single and dual threshold plots for label '{label}'"
             )
-    fig, axs = plt.subplots(figsize=(16, 7), nrows=1, ncols=2, sharex=True, sharey=True)
+    nrows, ncols = 1, 1
+    fig, _ = plt.subplots(
+        figsize=(9, 7), nrows=nrows, ncols=ncols, sharex=True, sharey=True
+    )
 
-    scenarios = ["single threshold", "dual threshold"]
+    # scenarios = ["single threshold", "dual threshold"]
+    scenarios = ["single threshold"]
     label_counts_dict = dict.fromkeys(scenarios)
     for i, (labels_dict, gt_labels, pred_labels_dict, plot_title) in enumerate(
         [
@@ -988,15 +1009,15 @@ def plot_differential_classification_results(
                 pred_labels_dict_single_thres,
                 single_thres_plot_title,
             ),
-            (
-                labels_dict_dual_thres,
-                gt_labels_dual_thres,
-                pred_labels_dict_dual_thres,
-                dual_thres_plot_title,
-            ),
+            # (
+            #     labels_dict_dual_thres,
+            #     gt_labels_dual_thres,
+            #     pred_labels_dict_dual_thres,
+            #     dual_thres_plot_title,
+            # ),
         ]
     ):
-        plt.subplot(1, 2, i + 1)
+        plt.subplot(nrows, ncols, i + 1)
         label_counts_dict[scenarios[i]] = {
             label: (gt_labels == i).sum() for i, label in enumerate(labels_dict.keys())
         }
@@ -1009,8 +1030,11 @@ def plot_differential_classification_results(
             plt.plot(
                 results.index, results.loc[:, cat], label=cat, color=labels_dict[cat]
             )
+        plt.xlim(min(results.index), max(results.index))
         plt.title(plot_title)
 
+    if y_lim_low is not None and y_lim_high is not None:
+        plt.ylim(y_lim_low, y_lim_high)
     leg_handles, leg_labels = plt.gca().get_legend_handles_labels()
     fig.legend(
         leg_handles,
