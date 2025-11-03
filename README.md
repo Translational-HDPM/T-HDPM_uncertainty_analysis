@@ -1,6 +1,6 @@
 # Modeling Measurement Uncertainty for a Cell-Free mRNA Alzheimer’s Classifier
 
-This repository demonstrates how to estimate and visualize measurement uncertainty for a high-dimensional RNA-Seq classifier of cell-free mRNA in Alzheimer’s disease. By using Monte Carlo simulations and regulatory guidelines, this notebook walks through the steps needed to quantify uncertainty in a clinical laboratory setting.
+This repository demonstrates how to estimate and visualize measurement uncertainty for a high-dimensional RNA-Seq classifier of cell-free mRNA in Alzheimer’s disease. By using Monte Carlo simulations, this notebook walks through the steps needed to quantify uncertainty in a clinical laboratory setting.
 
 ## Table of Contents
 
@@ -23,12 +23,13 @@ Although the primary focus is on Alzheimer’s disease cell-free mRNA data, the 
 ## Background
 
 Accurate interpretation of laboratory tests depends on a clear understanding of measurement uncertainty. In a clinical diagnostic setting, having an estimate of a test’s uncertainty
+
 - Improves interpretation of borderline or ambiguous results.
 - Acts as an operational tool to detect drift or bias over time.
 - Helps prioritize which analytes (genes, in this case) contribute most to total variability.
 - Satisfies regulatory requirements that laboratories share uncertainty estimates with end users.
 
-In this project, we start from an existing logistic regression model (trained to distinguish AD patients from controls using cell-free mRNA data) and explore how uncertainty propagates through that model for technical variability.
+In this project, we start from an existing logistic regression model (trained to distinguish AD patients from controls using cell-free mRNA data) and explore how uncertainty propagates through that model for technical variability in the measurements.
 
 ## Data and Dependencies
 
@@ -97,6 +98,8 @@ Launch Marimo in this directory:
 ```bash
 marimo edit
 ```
+
+and then choose a specific notebook to open from the menu.
 
 ### Docker application
 
