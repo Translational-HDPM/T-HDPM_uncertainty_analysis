@@ -10,3 +10,4 @@ marimo
 pytest
 scikit-learn
 joblib
+openpyxl
