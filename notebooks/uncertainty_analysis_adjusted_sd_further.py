@@ -1,27 +1,28 @@
 import marimo
 
-__generated_with = "0.17.0"
+__generated_with = "0.19.11"
 app = marimo.App(width="full")
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""## Modeling of Measurement Uncertainty of a high-dimensional RNA-Seq classifier of cell-free mRNA for Alzheimer’s Disease"""
-    )
+    mo.md(r"""
+    ## Modeling of Measurement Uncertainty of a high-dimensional RNA-Seq classifier of cell-free mRNA for Alzheimer’s Disease
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Motivation""")
+    mo.md(r"""
+    ### Motivation
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     Precision Medicine recognizes common complex diseases are actually multiple ‘endotypes’ with different underlying pathology that present with a similar phenotype. Rather than discrete stages of disease, common complex diseases represent a continuum of pathology. End stage common complex disease may not include a complete catalog of biomarkers for earlier points in pathology continuum. Complexity of endotypes presents unique regulatory challenges requiring data simulation to model reproducibility. Translational Diagnostics are transitioning from single analyte assays to multi-analyte, machine learning (ML) classifiers.
 
     For the use of such 'clinical-grade' ML predictors, it is recommended in the literature to document any sources of variation (aleatoric uncertainty) that affect reproducibility and estimate the variability of the prediction. In this context, methods for estimating ‘clinical-grade’ measurement uncertainty can:
@@ -30,35 +31,37 @@ def _(mo):
     - act as an operational tool to discern laboratory test drift;
     - shed light on the analytes that should be prioritized to decrease overall uncertainty range and;
     - upon request, help laboratories make estimates of measurement uncertainty available to laboratory users.
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Goal""")
+    mo.md(r"""
+    ### Goal
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""This work demonstrates a methodology for estimating the impact of plausible, empirically-informed technical measurement uncertainty on the performance of high-dimensional RNA-Seq classifiers, in benchmark case for Alzheimer's Disease, using Monte Carlo simulations. We simulate the assay variation for each gene independently for a given subject at different levels of relative standard deviation (RSD) of Transcripts Per Million (TPM) values (gene differential expression levels)."""
-    )
+    mo.md(r"""
+    This work demonstrates a methodology for estimating the impact of plausible, empirically-informed technical measurement uncertainty on the performance of high-dimensional RNA-Seq classifiers, in benchmark case for Alzheimer's Disease, using Monte Carlo simulations. We simulate the assay variation for each gene independently for a given subject at different levels of relative standard deviation (RSD) of Transcripts Per Million (TPM) values (gene differential expression levels).
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Measurement Uncertainty: Regulatory Setting""")
+    mo.md(r"""
+    ### Measurement Uncertainty: Regulatory Setting
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     Despite significant advances in diagnostic testing, only a few guidelines have been developed for interpretation of measurement uncertainty in medical laboratories, including
 
     - Clinical Laboratory Standards Institute (CLSI)
@@ -70,30 +73,29 @@ def _(mo):
         - Class II Special Controls Guidance Document: Ovarian Adnexal Mass Assessment Score Test System (2011).
 
     Monte Carlo techniques are recommended by FDA to estimate diagnostic uncertainty of multi-dimensional classifiers, which suggest general guidelines through which overall uncertainty of high dimensional classifiers can be determined or estimated. Besides noted variation, sample site, operator and instrument variation need to be considered.
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Background""")
+    mo.md(r"""
+    ### Background
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
-    The ML model used in this notebook is a classifier from a study published in _Science Advances_ ([Toden et al, 2020](https://www.science.org/doi/abs/10.1126/sciadv.abb1654)). The study utilized plasma-derived circulating cell-free messenger RNA (cf-mRNA) from a dataset comprising 126 patients with Alzheimer's Disease (AD) and 116 healthy, non-cognitive impairment (NCI) controls of similar age distribution, sourced from five independent academic centers and one commercial provider; pre-analytic site-specific effects were adjusted for in subsequent analyses. 
+    mo.md(r"""
+    The ML model used in this notebook is a classifier from a study published in _Science Advances_ ([Toden et al, 2020](https://www.science.org/doi/abs/10.1126/sciadv.abb1654)). The study utilized plasma-derived circulating cell-free messenger RNA (cf-mRNA) from a dataset comprising 126 patients with Alzheimer's Disease (AD) and 116 healthy, non-cognitive impairment (NCI) controls of similar age distribution, sourced from five independent academic centers and one commercial provider; pre-analytic site-specific effects were adjusted for in subsequent analyses.
 
     To prepare the machine learning model for AD classification while minimizing bias, feature selection was conducted exclusively on samples from a distinct training cohort (University of Kentucky: 24 NCI and 66 AD patients). This involved identifying differentially expressed genes using DESeq2 with a false discovery rate (FDR) cutoff of less than 0.05.
 
-    The machine learning model, a logistic regression with L2 regularization, was trained using the expression levels (transcripts per million) of these 1658 selected genes from the University of Kentucky training cohort (24 NCI, 66 AD). L2 regularization was specifically employed to prevent overfitting. Metaparameters for this model were optimized using a 15-fold cross-validation strategy on the training cohort. 
+    The machine learning model, a logistic regression with L2 regularization, was trained using the expression levels (transcripts per million) of these 1658 selected genes from the University of Kentucky training cohort (24 NCI, 66 AD). L2 regularization was specifically employed to prevent overfitting. Metaparameters for this model were optimized using a 15-fold cross-validation strategy on the training cohort.
 
     The classifier's ability to discriminate between AD patients and NCI controls was then rigorously evaluated on an independent test set. This test set consisted of the remaining 60 AD patients and 92 NCI controls, derived from four independent sources distinct from the training data (UC San Diego, University of Washington, Indiana University, BioIVT). In this independent validation, the classifier achieved an Area Under the Receiver Operating Characteristic curve (AUC) of 0.83. Further analysis revealed that the genes included in the classifier were enriched in biological pathways known to be associated with AD pathogenesis, including immune response and cellular metabolic processes, thereby lending biological plausibility to the statistical findings.
-    """
-    )
+    """)
     return
 
 
@@ -147,22 +149,22 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Setting parameters""")
+    mo.md(r"""
+    ### Setting parameters
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     Here we set some parameters that we use throughout the analysis.
 
     1. **Mean TPM**: When we filter genes for analysis with a reduced feature set, we drop genes for which the mean TPM is below this cutoff. (details included later)
-    2. **Range of percent uncertainty values to simulate**: List of values taken from literature reported studies representing different overall noise scenario, used as a percentage to scale the baseline technical standard deviation calculated from the TPM value. 
+    2. **Range of percent uncertainty values to simulate**: List of values taken from literature reported studies representing different overall noise scenario, used as a percentage to scale the baseline technical standard deviation calculated from the TPM value.
     3. **Number of samples**: Number of Monte Carlo samples to simulate for each subject
     4. **How to aggregate replicates**: How to aggregate TPM values from multiple technical replicates for a given subject. Default is "average", i.e. the average of multiple TPM values will be taken.
-    """
-    )
+    """)
     return
 
 
@@ -269,15 +271,17 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### The Dataset""")
+    mo.md(r"""
+    ### The Dataset
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo, patients_df, patients_df_2):
-    mo.md(
-        rf"""The raw dataset contains gene expression data in the form of TPM values for subjects (including technical replicates), along with the coefficients of the classifier. In addition, we also utilize original disease categories (pathology) that the patients belong to. The dataset contains technical replicates for a subset ({patients_df.shape[1] - patients_df_2.shape[1]} samples) of {patients_df.shape[1]} biological samples. For this analysis, these technical replicates were averaged to create a single expression profile per biological subject. Our subsequent simulation aims to re-introduce a plausible model of this technical variability."""
-    )
+    mo.md(rf"""
+    The raw dataset contains gene expression data in the form of TPM values for subjects (including technical replicates), along with the coefficients of the classifier. In addition, we also utilize original disease categories (pathology) that the patients belong to. The dataset contains technical replicates for a subset ({patients_df.shape[1] - patients_df_2.shape[1]} samples) of {patients_df.shape[1]} biological samples. For this analysis, these technical replicates were averaged to create a single expression profile per biological subject. Our subsequent simulation aims to re-introduce a plausible model of this technical variability.
+    """)
     return
 
 
@@ -378,9 +382,9 @@ def _(collapse_replicates_by, pathos_1, patients_df):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""After pre-processing the matrix (dataframe) of TPM values looks like this:"""
-    )
+    mo.md(r"""
+    After pre-processing the matrix (dataframe) of TPM values looks like this:
+    """)
     return
 
 
@@ -392,9 +396,9 @@ def _(patients_df_2):
 
 @app.cell(hide_code=True)
 def _(mo, patients_df):
-    mo.md(
-        rf"""Following is a summary of the number of patients in each disease category in the dataset. For each patient, the dataset comprises of TPM values from {patients_df.shape[0]} genes."""
-    )
+    mo.md(rf"""
+    Following is a summary of the number of patients in each disease category in the dataset. For each patient, the dataset comprises of TPM values from {patients_df.shape[0]} genes.
+    """)
     return
 
 
@@ -406,15 +410,17 @@ def _(pathos_2):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Removing genes with low TPM values contributing noise""")
+    mo.md(r"""
+    ### Removing genes with low TPM values contributing noise
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used. The objective of removing genes is to filter out any genes with low TPM values that affect the predictions of the classifier by adding noise."""
-    )
+    mo.md(r"""
+    When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used. The objective of removing genes is to filter out any genes with low TPM values that affect the predictions of the classifier by adding noise.
+    """)
     return
 
 
@@ -444,16 +450,15 @@ def _(mo, patients_df_1, patients_df_2):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""### Selecting the Probability threshold based on Sensitivity and Specificity"""
-    )
+    mo.md(r"""
+    ### Selecting the Probability threshold based on Sensitivity and Specificity
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     Before simulating uncertainty, we chose to first establish the classifier's decision thresholds on the original, unperturbed data. For deciding on the probability threshold, we use **Youden's J statistic (Youden's index)** which is defined as
 
     \[
@@ -475,8 +480,7 @@ def _(mo):
     $TP$, $TN$, $FP$ and $FN$ denote the number of true positives, true negatives, false positives and false negatives for a given class, respectively.
 
     We would like to maximize the Youden's index with our threshold selection. We do this _by selecting a threshold at which sensitivity and specificity are roughly equal_.
-    """
-    )
+    """)
     return
 
 
@@ -656,8 +660,7 @@ def _(
 
 @app.cell(hide_code=True)
 def _(ad_npv, ad_ppv, ad_sens, ad_spec, mo, single_thres):
-    mo.md(
-        rf"""
+    mo.md(rf"""
     At threshold {single_thres:.4f}, for AD,
 
     - sensitivity = {ad_sens:.4f},
@@ -667,16 +670,15 @@ def _(ad_npv, ad_ppv, ad_sens, ad_spec, mo, single_thres):
     - Youden's index = {(ad_sens + ad_spec - 100) / 100:.4f}.
 
     So, we use {single_thres:.4f} as our probability threshold for the single threshold classification scenario.
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo, single_thres):
-    mo.md(
-        rf"""For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. But if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold equal to the single threshold ({single_thres:.4f}) as calculated before, and upper threshold at few steps from the lower threshold."""
-    )
+    mo.md(rf"""
+    For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. But if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold equal to the single threshold ({single_thres:.4f}) as calculated before, and upper threshold at few steps from the lower threshold.
+    """)
     return
 
 
@@ -768,8 +770,7 @@ def _(
     nci_sens_low,
     nci_spec_low,
 ):
-    mo.md(
-        rf"""
+    mo.md(rf"""
     At lower threshold {dual_thres_low:.4f}, for NCI,
 
     - sensitivity = {nci_sens_low:.4f}
@@ -785,21 +786,21 @@ def _(
     - positive predictive value = {nci_ppv_low:.4f}
     - negative predictive value = {nci_npv_low:.4f}
     - Youden's index = {(ad_sens_high + ad_spec_high - 100) / 100:.4f}
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Performing Monte Carlo simulations""")
+    mo.md(r"""
+    ### Performing Monte Carlo simulations
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values. The specific steps as mentioned in the guidance are as follows (for sake of simplicity, consider two individual analytes $X_1$ and $X_2$ with $Score = F(X_1, X_2)$ and repeatability precision data):
 
     1. Provide repeatability precision results (mean value, standard deviation (SD), and percentage coefficient of variation (%CV)) from previously performed precision studies and from the precision studies for the Score. Using these data, construct repeatability precision profiles for $X_1$ and $X_2$ by linear interpolation.
@@ -808,18 +809,16 @@ def _(mo):
 
     3. Generate $X_1^*$ using normal distribution with mean value of $U$ and standard deviation of $SD_1 (U)$ and generate $X_2^*$ using normal distribution with mean value of $V$ and standard deviation of $SD_2 (V)$. Calculate $Score^* = F(X_1^*, X_2^*)$. After performing this step $K$ times (for example, 100), calculate the mean value of score of $K$ measurements $Score^*_{mean}$ (corresponding to mean value of the score for $X_1 = U$ and $X_2 = V$) and standard deviation SD and %CV of the $K$ score measurements.
 
-    4. Provide repeatability precision profile for the Score: values of the mean score $Score^* _{mean}$ with the SD and %CV from the previous step for all possible combinations of $U$ and $V$ for which precision profiles are available. 
+    4. Provide repeatability precision profile for the Score: values of the mean score $Score^* _{mean}$ with the SD and %CV from the previous step for all possible combinations of $U$ and $V$ for which precision profiles are available.
 
     As described in the guidance above, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation), we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$. However, for RNA-seq datasets, modeling uncertainty in this fashion with a constant noise level ignores the trend of technical variation commonly observed in which the standard deviation (technical variation) decreases with increasing TPM values to an asymptote. (e.g. in Fig. 1.(a) from [Law et al (2014)](https://link.springer.com/content/pdf/10.1186/gb-2014-15-2-r29.pdf)).
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     Aligning with Law et al (2014), we adopt the following functional form to model the relationship between the standard deviation and the mean
 
     $$
@@ -828,19 +827,17 @@ def _(mo):
 
     where $\mu$ and $\sigma$ are mean and standard deviation of the $log_2 (1+TPM)$ dataset, respectively and $a$, $b$, $c$ are constants.
 
-    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 6.0. 
+    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 6.0.
 
     ///note
     The values of $a$, $b$, $c$ and $scaling factor$ have been set without empirical calculations due to lack of sufficient technical replicate data. Ideally, if technical replicate data is available, these parameters should be set empirically.
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     To generate Monte Carlo TPM samples for a given gene $i$ and subject $j$, we follow the following algorithm:
 
     1. Calculate $\sigma_{ij}$ using the SD-mean relationship with $TPM_{ij}$ as the mean:
@@ -854,8 +851,7 @@ def _(mo):
     2. Generate $N$ samples $x_k$ ($k$ = $1…N$) from a Gaussian distribution with mean = $\mu_{ij}$ and standard deviation = $\sigma_{ij}$, scaled.
     3. Convert samples to TPM scale by exponentiation:
     $$TPM_{k, sampled} = 2^{x_k}$$
-    """
-    )
+    """)
     return
 
 
@@ -906,13 +902,11 @@ def _(np):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     After generating the simulated measurements, we calculate the classifier predictions for these. We then compare the score for the simulated measurement ("simulated score") against the score for the actual measurement ("inferent score"). Based on the set decision threshold(s) for the classifier, we track the classification of the simulated scores against the inferent scores.
 
     We define a **differentially classified subject** as a subject (patient) that satisfies a differential classification criterion to produce a different classification into AD/NCI than the inferent category. We track differentially classified subjects under the differential classification scenario where at least 10 % of the simulated scores are different from the actual score for a given subject.
-    """
-    )
+    """)
     return
 
 
@@ -1013,7 +1007,9 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Visualization and post-processing""")
+    mo.md(r"""
+    ### Visualization and post-processing
+    """)
     return
 
 
@@ -1088,8 +1084,7 @@ def _(mo, uncertainties):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     #### Jaccard index
 
     To analyze the impact of simulated technical variation on the classifier's predictions, we use the Jaccard index to compare the predicted categories under synthetic noise against predicted categories with no perturbations. The Jaccard index calculates how similar two finite sets are. For two sets $A$ and $B$, it is defined as the ratio of the size of their intersection to the size of their union.
@@ -1099,8 +1094,7 @@ def _(mo):
     $$
 
     If $A$ and $B$ are identical, the Jaccard index is 1. In this context, the lower the Jaccard index, the more dissimilar the predictions under noise are from the predictions without noise, indicating increased differential classification.
-    """
-    )
+    """)
     return
 
 
@@ -1145,19 +1139,19 @@ def _(mo, uncertainties):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Visualizing agreement between simulated and inferent scores""")
+    mo.md(r"""
+    ### Visualizing agreement between simulated and inferent scores
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
-    We calculate the classification agreement between methods in each part of the spectrum of disease severity using the **V-plot method** ([Petraco et al (2018)](https://openheart.bmj.com/content/openhrt/5/1/e000663.full.pdf)). 
+    mo.md(r"""
+    We calculate the classification agreement between methods in each part of the spectrum of disease severity using the **V-plot method** ([Petraco et al (2018)](https://openheart.bmj.com/content/openhrt/5/1/e000663.full.pdf)).
 
     The V-plot has this shape because the accuracy of tests is universally high at the extremes of disease severity (near 100%) but close to the classification cut-off agreement plunges. The width of the mouth of the V can be used as a general measure of a test’s performance: the wider the V, the poorer the test ability to match a reference modality. Classification agreement between two methods of measurement is called diagnostic accuracy if one test is considered the reference gold standard.
-    """
-    )
+    """)
     return
 
 
@@ -1183,6 +1177,7 @@ def _(
     GridSpec,
     ad_spec,
     gt_probs,
+    np,
     pathos_2,
     plot_v_plot,
     plt,
@@ -1190,6 +1185,11 @@ def _(
     sns,
     uncertainties,
 ):
+    from mpl_toolkits.axes_grid1.inset_locator import (
+        inset_axes,
+        mark_inset,
+    )
+
     ad_probs = gt_probs[pathos_2[pathos_2["Disease"] == "AD"].index]
     nci_probs = gt_probs[pathos_2[pathos_2["Disease"] == "NCI"].index]
     fig = plt.figure(figsize=(10, 10))
@@ -1275,6 +1275,54 @@ def _(
         ha="left",
         va="center",
     )
+    nbins = 30
+    ax = plt.gca()
+    # Make zoomed inset
+    inset_axs = inset_axes(ax, loc="center", width="50%", height="50%")
+    sns.histplot(
+        ad_probs,
+        color="r",
+        alpha=0.3,
+        fill=True,
+        bins=nbins,
+        stat="density",
+        label="Classifier probability score for AD patients",
+        ax=inset_axs,
+    )
+    sns.histplot(
+        nci_probs,
+        color="b",
+        alpha=0.3,
+        fill=True,
+        bins=nbins,
+        stat="density",
+        label="Classifier probability score for NCI patients",
+        ax=inset_axs,
+    )
+    x_min, x_max = 0.1, 0.9
+    hist_data, bins = np.histogram(
+        ad_probs,
+        bins=nbins,
+        density=True,
+    )
+    y_min, y_max = (
+        0,
+        int(5 * hist_data[(bins[:-1] >= x_min) & (bins[:-1] <= x_max)].max()),
+    )
+    inset_axs.set_xlim(x_min, x_max)
+    inset_axs.set_ylim(y_min, y_max)
+
+    plt.xlabel("")
+    plt.ylabel("")
+
+    mark_inset(
+        ax,
+        inset_axs,
+        loc1=1,
+        loc2=2,
+        fc="none",
+        ec="gray",
+    )
     return
 
 
@@ -1289,9 +1337,9 @@ def _(mo, uncertainties):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""#### Which subjects flipped their classes (categories) under simulated noise?"""
-    )
+    mo.md(r"""
+    #### Which subjects flipped their classes (categories) under simulated noise?
+    """)
     return
 
 
@@ -1364,51 +1412,49 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Preliminary observations""")
+    mo.md(r"""
+    ### Preliminary observations
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     - RNA-Seq Measurement Uncertainty impacts differential classification predominantly at the classifier threshold. (Ref. Figure 4)
     - Filtering out genes with low mean TPMs decreases the percentage of both AD and NCI subjects whose diagnostic classification changes when at least 10% of simulations mismatch. (Ref. Figure 2 and 3)
     - These low-expression genes are a source of classification instability under uncertainty which need to be taken into account when building diagnostic classifications. (Ref. Figure 4)
-    - For a diagnostic classifier with two thresholds, (Ref. Figure 4) 
+    - For a diagnostic classifier with two thresholds, (Ref. Figure 4)
         - An initial lab result might suggest a wait and watch approach.
         - The demonstration of near-certain reclassification under typical measurement noise for this specific patient's result acts like a diagnostic stress test (i.e revealing high instability).
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Additional analysis on the Low TPM genes""")
+    mo.md(r"""
+    ### Additional analysis on the Low TPM genes
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ///note
     Set the "Mean TPM cutoff value" to a non-zero number to see the effect on the cells below.
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     #### Distribution of TPM values
 
     We want to check the distribution of simulated TPM values for low TPM genes in patients diagnosed as NCI.
-    """
-    )
+    """)
     return
 
 
@@ -1569,13 +1615,11 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     #### Does removing low TPM genes increase differential classification of NCI subjects?
 
     We want to test the hypothesis that removing them causes increased differential classification of patients in the NCI category.
-    """
-    )
+    """)
     return
 
 
@@ -1649,13 +1693,11 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     #### What percent of TPM values in low TPM genes among NCI subjects are "Null" values?
 
     In the original dataset, the TPM values that were missing must have been imputed with 0 to avoid calculation errors. Since the present dataset actually does not have null values, but while generation had all TPM values less than 5 removed, we *assume* that **all TPM values that are zero were previously missing or were considered insignificant**. Getting the proportion of such values for every low TPM gene within NCI patients will help us pinpoint the degree of noise they add to the data.
-    """
-    )
+    """)
     return
 
 
@@ -1674,32 +1716,28 @@ def _(low_tpm_patients_df):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     #### How many of the low TPM genes had positive coefficients and negative coefficients?
 
     We want to see if removing the low TPM genes removes an equal number of genes with positive and negative coefficients.
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(low_tpm_coefficients, mo):
-    mo.md(
-        rf"""
+    mo.md(rf"""
     - Number of negative coefficient genes = {(low_tpm_coefficients < 0).sum()}
     - Number of positive coefficient genes = {(low_tpm_coefficients >= 0).sum()}
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""#### Did filtering out low TPM genes reduce the contribution of "resilience" factors to the aggregated classifier score?"""
-    )
+    mo.md(r"""
+    #### Did filtering out low TPM genes reduce the contribution of "resilience" factors to the aggregated classifier score?
+    """)
     return
 
 
@@ -1757,14 +1795,15 @@ def _(gt_probs):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### References""")
+    mo.md(r"""
+    ### References
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     1. Beaver et al. "An FDA Perspective on the Regulatory Implications of Complex Signatures to Predict Response to Targeted Therapies." _Clin Cancer Res. 2017 Mar 15;23(6):1368-1372._
     2. Braga and Panteghini "The utility of measurement uncertainty in medical laboratories" _Clin Chem Lab Med 2020; 58(9):1407-1413_.
     3. Law, Charity W., et al. "voom: Precision weights unlock linear model analysis tools for RNA-seq read counts." _Genome biology 15 (2014): 1-17_.
@@ -1774,8 +1813,7 @@ def _(mo):
     7. Theodorsson E. "Uncertainty in Measurement and Total Error: Tools for Coping with Diagnostic Uncertainty." _Clin Lab Med. 2017 Mar;37(1):15-34_.
     8. Toden et al. "Noninvasive characterization of Alzheimer's disease by circulating, cell-free messenger RNA next-generation sequencing." _Sci Adv. 2020 Dec 9;6(50):eabb1654_.
     9. Tong et al. "Impact of RNA-seq data analysis algorithms on gene expression estimation and downstream prediction." _Sci Rep. 2020 Oct 21;10(1):17925_.
-    """
-    )
+    """)
     return
 
 

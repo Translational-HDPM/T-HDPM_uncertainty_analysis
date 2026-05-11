@@ -1,17 +1,15 @@
 import marimo
 
-__generated_with = "0.17.0"
+__generated_with = "0.19.11"
 app = marimo.App()
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Adjusting Standard Deviation based on TPM
     ### Author: Deb Debnath
-    """
-    )
+    """)
     return
 
 
@@ -38,20 +36,20 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### The Dataset""")
+    mo.md(r"""
+    ### The Dataset
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo, patients_df_2):
-    mo.md(
-        rf"""
+    mo.md(rf"""
     The `raw_data` dataframe contains the TPM values for {patients_df_2.shape[1]} subjects (including technical replicates), along with the coefficients of the classifier. The `pathos` dataframe contains the original categories that the patients belong to.
 
 
     For convenience we set the indexes of the dataframes to the patient IDs. We also ensure that between `pathos` and `raw_data` there are no null values and no missing patients (subjects).
-    """
-    )
+    """)
     return
 
 
@@ -110,22 +108,22 @@ def _(genes, pathos_1, patients_df):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Setting parameters""")
+    mo.md(r"""
+    ### Setting parameters
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     Here we set some parameters that we will use throughout the analysis.
 
     1. `mean_TPM`: When we filter genes for analysis with a reduced feature set, we drop genes for which the mean TPM is below this cutoff
     2. `num_patients`: Total number of samples/subjects/patients
     3. `uncertainties`: List of values representing maximum percentage of noise/uncertainty to simulate. (aka coefficient of variation). The corresponding slider below can be used to specify the upper and lower limits of percentages, with values being generated in steps of 5.
     4. `n_samples`: Number of Monte Carlo samples to simulate for each subject
-    """
-    )
+    """)
     return
 
 
@@ -221,15 +219,17 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Dropping genes below TPM threshold""")
+    mo.md(r"""
+    ### Dropping genes below TPM threshold
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used."""
-    )
+    mo.md(r"""
+    When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used.
+    """)
     return
 
 
@@ -258,16 +258,15 @@ def _(mo, patients_df_1, patients_df_2):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""## Modeling Technical Variability based on "voom" (variance modeling at the observational level)"""
-    )
+    mo.md(r"""
+    ## Modeling Technical Variability based on "voom" (variance modeling at the observational level)
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values.
 
     In general, given a measurement $\mu$, to simulate $k$ % uncertainty ($k$% coefficient of variation/relative standard deviation) we sample from a Gaussian distribution with mean $\mu$ and standard deviation (SD) $kX/100$.
@@ -282,19 +281,17 @@ def _(mo):
 
     where $\mu$ and $\sigma$ are mean and standard deviation of the $log_2 (1+TPM)$ dataset, respectively and $a$, $b$, $c$ are constants.
 
-    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 6.0. 
+    We start with values of $a$ = 0.75, $b$ = 1.0, $c$ = 0.25, $scaling factor$ = 6.0.
 
     ///note
     The values of $a$, $b$, $c$ and $scaling factor$ have been set without empirical calculations due to lack of sufficient technical replicate data. Ideally, if technical replicate data is available, these parameters should be set empirically.
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     To generate Monte Carlo TPM samples for a given gene $i$ and subject $j$:
 
     1. Calculate $\sigma_{ij}$ using the SD-mean relationship with $TPM_{ij}$ as the mean:
@@ -308,8 +305,7 @@ def _(mo):
     2. Generate $N$ samples $x_k$ ($k$ = $1…N$) from a Gaussian distribution with mean = $\mu_{ij}$ and standard deviation = $\sigma_{ij}$, scaled.
     3. Convert samples to TPM scale by exponentiation:
     $$TPM_{k, sampled} = 2^{x_k}$$
-    """
-    )
+    """)
     return
 
 
@@ -538,9 +534,9 @@ def _(master_seed, np, pd, plt, sampler):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""Different values for parameters $a$, $b$ and $c$ can have varying effects on simulated TPM values at different percentile levels for a given gene. Experiment with the values in the interactive app below."""
-    )
+    mo.md(r"""
+    Different values for parameters $a$, $b$ and $c$ can have varying effects on simulated TPM values at different percentile levels for a given gene. Experiment with the values in the interactive app below.
+    """)
     return
 
 
@@ -608,7 +604,9 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Effect of a, b, c and scaling_factor on calculated SD value""")
+    mo.md(r"""
+    ### Effect of a, b, c and scaling_factor on calculated SD value
+    """)
     return
 
 
@@ -652,9 +650,9 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""### Effect of a, b, c and scaling_factor on distribution of Simulated TPM values"""
-    )
+    mo.md(r"""
+    ### Effect of a, b, c and scaling_factor on distribution of Simulated TPM values
+    """)
     return
 
 
@@ -718,9 +716,9 @@ def _(
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""### Do the simulated replicates accurately model the Technical variation in the Dataset?"""
-    )
+    mo.md(r"""
+    ### Do the simulated replicates accurately model the Technical variation in the Dataset?
+    """)
     return
 
 
