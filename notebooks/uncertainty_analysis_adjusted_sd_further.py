@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.19.11"
+__generated_with = "0.23.6"
 app = marimo.App(width="full")
 
 
@@ -675,122 +675,6 @@ def _(ad_npv, ad_ppv, ad_sens, ad_spec, mo, single_thres):
 
 
 @app.cell(hide_code=True)
-def _(mo, single_thres):
-    mo.md(rf"""
-    For two thresholds, we find lower and upper thresholds that maximize Youden's index for NCI and AD classes respectively. However, we are limited by our dataset, since the diagnoses are dichotomised. If there were a third intermediate category between AD and NCI, we could have calculated distinct lower and upper thresholds from the sensitivity and specificity information. But if we try to find lower and upper thresholds following the criteria stated before, we end up with the same lower and upper threshold. To mitigate this we manually set the lower threshold equal to the single threshold ({single_thres:.4f}) as calculated before, and upper threshold at few steps from the lower threshold.
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    threshold_step_slider = mo.ui.slider(
-        start=0.01,
-        stop=1.00,
-        step=0.005,
-        value=0.06,
-        show_value=True,
-        label="Step to set the upper threshold away from the lower threshold.",
-    )
-    mo.callout(threshold_step_slider)
-    return (threshold_step_slider,)
-
-
-@app.cell(hide_code=True)
-def _(single_thres, threshold_step_slider):
-    dual_thres_low = single_thres
-    dual_thres_high = min(1.0, single_thres + threshold_step_slider.value)
-    return dual_thres_high, dual_thres_low
-
-
-@app.cell(hide_code=True)
-def _(dual_thres_high, dual_thres_low, gt_probs, mo):
-    _num_NCI, _num_interm, _num_AD = (
-        (gt_probs < dual_thres_low).sum(),
-        ((dual_thres_low <= gt_probs) & (gt_probs < dual_thres_high)).sum(),
-        (dual_thres_high <= gt_probs).sum(),
-    )
-    mo.callout(
-        mo.md(
-            rf"""AD = {_num_AD / len(gt_probs) * 100:.2f} %, Intermediate = {_num_interm / len(gt_probs) * 100:.2f} %, NCI = {_num_NCI / len(gt_probs) * 100:.2f} %"""
-        )
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(
-    calculate_sensitivity_specificity_and_predictive_values,
-    dual_thres_high,
-    dual_thres_low,
-    gt_probs,
-    pathos_2,
-):
-    nci_sens_low, nci_spec_low, nci_ppv_low, nci_npv_low = (
-        calculate_sensitivity_specificity_and_predictive_values(
-            pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-            gt_probs.apply(lambda x: 1 if x >= dual_thres_low else 0),
-            0,
-        )
-    )
-    ad_sens_high, ad_spec_high, ad_ppv_high, ad_npv_high = (
-        calculate_sensitivity_specificity_and_predictive_values(
-            pathos_2["Disease"].apply(lambda x: 1 if x == "AD" else 0),
-            gt_probs.apply(lambda x: 1 if x >= dual_thres_high else 0),
-            1,
-        )
-    )
-    ad_spec_high = ad_spec_high * 100.0
-    ad_sens_high = ad_sens_high * 100.0
-    ad_ppv_high *= 100.0
-    ad_npv_high *= 100.0
-    nci_spec_low = nci_spec_low * 100.0
-    nci_sens_low = nci_sens_low * 100.0
-    nci_ppv_low *= 100.0
-    nci_npv_low *= 100.0
-    return (
-        ad_sens_high,
-        ad_spec_high,
-        nci_npv_low,
-        nci_ppv_low,
-        nci_sens_low,
-        nci_spec_low,
-    )
-
-
-@app.cell(hide_code=True)
-def _(
-    ad_sens_high,
-    ad_spec_high,
-    dual_thres_high,
-    dual_thres_low,
-    mo,
-    nci_npv_low,
-    nci_ppv_low,
-    nci_sens_low,
-    nci_spec_low,
-):
-    mo.md(rf"""
-    At lower threshold {dual_thres_low:.4f}, for NCI,
-
-    - sensitivity = {nci_sens_low:.4f}
-    - specificity = {nci_spec_low:.4f}
-    - positive predictive value = {nci_ppv_low:.4f}
-    - negative predictive value = {nci_npv_low:.4f}
-    - Youden's index = {(nci_sens_low + nci_spec_low - 100) / 100:.4f}.
-
-    At upper threshold {dual_thres_high:.4f}, for AD
-
-    - sensitivity = {ad_sens_high:.4f}
-    - specificity = {ad_spec_high:.4f}
-    - positive predictive value = {nci_ppv_low:.4f}
-    - negative predictive value = {nci_npv_low:.4f}
-    - Youden's index = {(ad_sens_high + ad_spec_high - 100) / 100:.4f}
-    """)
-    return
-
-
-@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ### Performing Monte Carlo simulations
@@ -978,8 +862,6 @@ def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
 @app.cell(hide_code=True)
 def _(
     coefficients_1,
-    dual_thres_high,
-    dual_thres_low,
     master_seed,
     n_samples,
     num_parallel_workers,
@@ -993,8 +875,8 @@ def _(
         patients_df_2,
         sampler_gaussian,
         uncertainties,
-        thres_low=dual_thres_low,
-        thres_high=dual_thres_high,
+        thres_low=0.1,
+        thres_high=0.9,
         single_thres=single_thres,
         coefficients=coefficients_1,
         diff_class_lim=int(0.1 * n_samples),
@@ -1014,14 +896,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(
-    ad_spec,
-    ad_spec_high,
-    nci_spec_low,
-    plot_differential_classification_results,
-    res,
-    uncertainties,
-):
+def _(ad_spec, plot_differential_classification_results, res, uncertainties):
     plot_differential_classification_results(
         labels_dict_single_thres={"NCI": "b", "AD": "g"},
         labels_dict_dual_thres={"NCI": "b", "Intermediate": "r", "AD": "g"},
@@ -1029,45 +904,23 @@ def _(
         gt_labels_dual_thres=res.dual_thres_gt_labels,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
         pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
-        # single_thres_plot_title=f"(a) Single threshold, specificity: {ad_spec:.2f} % AD",
         single_thres_plot_title=f"Single threshold, specificity: {ad_spec:.2f} % AD",
-        dual_thres_plot_title=f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
+        dual_thres_plot_title="",
         figure_title="Differential classification for levels of uncertainty"
         + f" ({min(uncertainties)}-{max(uncertainties)}%)",
-        # + "\n(at least 10% simulated scores mismatch)",
         y_lim_low=0.0,
         y_lim_high=12.0,
     )
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(res):
     print(
         "NCI = ",
         (res.single_thres_gt_labels == 0).sum(),
         "AD = ",
         (res.single_thres_gt_labels == 1).sum(),
-    )
-    print(
-        "NCI = ",
-        (res.dual_thres_gt_labels == 0).sum(),
-        "Intermediate = ",
-        (res.dual_thres_gt_labels == 1).sum(),
-        "AD = ",
-        (res.dual_thres_gt_labels == 2).sum(),
-    )
-    return
-
-
-@app.cell
-def _(res):
-    from src.postprocessing import get_differential_classification
-
-    get_differential_classification(
-        res.dual_thres_gt_labels,
-        res.dual_thres_pred_labels,
-        ["NCI", "Intermediate", "AD"],
     )
     return
 
@@ -1099,14 +952,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(
-    ad_spec,
-    ad_spec_high,
-    nci_spec_low,
-    plot_jaccard_index_plot,
-    res,
-    uncertainties,
-):
+def _(ad_spec, plot_jaccard_index_plot, res, uncertainties):
     plot_jaccard_index_plot(
         labels_dict_single_thres={"NCI": "b", "AD": "g"},
         labels_dict_dual_thres={"NCI": "b", "Intermediate": "r", "AD": "g"},
@@ -1114,12 +960,10 @@ def _(
         gt_labels_dual_thres=res.dual_thres_gt_labels,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
         pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
-        # single_thres_plot_title=f"(a) Single threshold, specificity: {ad_spec:.2f} % AD",
         single_thres_plot_title=f"Single threshold, specificity: {ad_spec:.2f} % AD",
-        dual_thres_plot_title=f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
+        dual_thres_plot_title="",
         figure_title="Jaccard index plot showing differential classification\n"
         + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %)",
-        # + " \n(at least 10% simulated scores mismatch)",
         y_lim_low=0.8,
         y_lim_high=1.0,
     )
@@ -1130,8 +974,7 @@ def _(
 def _(mo, uncertainties):
     mo.callout(
         mo.md(rf"""
-    Figure 3. Jaccard index plot showing differential classification for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %) (at least 10% simulated scores mismatch). The Intermediate group's classification is sensitive to measurement noise, leading to 100% reclassification ($J = 0$) when uncertainty reaches approximately ~15%. This highlights the instability in classification for the intermediate category due to proximity to decision boundaries.
-
+    Figure 3. Jaccard index plot showing differential classification for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %) (at least 10% simulated scores mismatch).
     """)
     )
     return
@@ -1163,12 +1006,6 @@ def _(calculate_subject_wise_agreement, n_samples, res, uncertainties):
         uncertainties=uncertainties,
         n_samples=n_samples,
     )
-    # dual_thres_subj_wise_agreement = calculate_subject_wise_agreement(
-    #     gt_series_dict=res.dual_thres_gt_series,
-    #     pred_series_dict=res.dual_thres_pred_series,
-    #     uncertainties=uncertainties,
-    #     n_samples=n_samples,
-    # )
     return (single_thres_subj_wise_agreement,)
 
 
@@ -1193,16 +1030,13 @@ def _(
     ad_probs = gt_probs[pathos_2[pathos_2["Disease"] == "AD"].index]
     nci_probs = gt_probs[pathos_2[pathos_2["Disease"] == "NCI"].index]
     fig = plt.figure(figsize=(10, 10))
-    # _nrows, _ncols = 2, 2
     _nrows, _ncols = 2, 1
     gs = GridSpec(_nrows, _ncols, height_ratios=[1, 1])
     fig.add_subplot(gs[0])
     plot_v_plot(
         single_thres_subj_wise_agreement,
         gt_probs,
-        # uncertainties,
         [5, 25, 35],
-        # f"(a) Single threshold, specificity: {ad_spec:.2f}% AD",
         f"Single threshold, specificity: {ad_spec:.2f}% AD",
         False,
         False,
@@ -1210,21 +1044,8 @@ def _(
     plt.xlim([0.0, 1.0])
     plt.ylabel("Percent agreement between simulated and\n inferent scores for subjects")
     plt.gca().set_xticklabels([])
-    # fig.add_subplot(gs[1])
-    # plot_v_plot(
-    #     dual_thres_subj_wise_agreement,
-    #     gt_probs,
-    #     uncertainties,
-    #     f"(b) Dual threshold, specificities: {nci_spec_low:.2f}% NCI and {ad_spec_high:.2f}% AD",
-    #     False,
-    #     False,
-    # )
-    # plt.xlim([0.0, 1.0])
-    # plt.gca().set_xticklabels([])
-    # plt.gca().set_yticklabels([])
-    # plt.ylabel("")
+
     leg_handles, leg_labels = plt.gca().get_legend_handles_labels()
-    # for i in [3, 4]:
     for i in [2]:
         fig.add_subplot(gs[i - 1])
         sns.histplot(
