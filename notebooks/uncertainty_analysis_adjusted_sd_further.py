@@ -217,13 +217,13 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mean_tpm_slider = mo.ui.slider(
-        start=0, stop=100, value=0, label="Mean TPM cutoff value", show_value=True
+        start=0, stop=100, value=14, label="Mean TPM cutoff value", show_value=True
     )
     n_samples_slider = mo.ui.slider(
         start=100,
         stop=10_000,
         step=100,
-        value=100,
+        value=1000,
         label="Number of Monte Carlo samples per TPM value",
         show_value=True,
     )
@@ -237,7 +237,7 @@ def _(mo):
     )
     replicate_aggregation_choice_dropdown = mo.ui.dropdown(
         ["average", "replicate 1", "replicate 2"],
-        value="average",
+        value="replicate 1",
         label="Collapse replicates by",
     )
     return (
