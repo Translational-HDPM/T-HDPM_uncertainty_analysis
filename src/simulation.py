@@ -150,8 +150,8 @@ def simulate_sampling_experiment(
     tpm_df: pd.DataFrame,
     sampler: Callable[[float, float, int], NumpyFloat32Array1D],
     *,
-    dual_thres_1: float,
-    dual_thres_2: float,
+    dual_thres_1: float | None,
+    dual_thres_2: float | None,
     single_thres: float,
     diff_class_lim: int,
     uncertainty: float,
@@ -228,10 +228,17 @@ def simulate_sampling_experiment(
         3. When the differential classification limit specified is not between 1 and the
             maximum number of simulated samples.
     """
-    if not 0 <= dual_thres_1 <= 1 and 0 <= dual_thres_2 <= 1 and 0 <= single_thres <= 1:
-        raise ValueError("Thresholds should be between 0 and 1.")
-    if dual_thres_1 >= dual_thres_2:
-        raise ValueError("dual_thres_1 must be less than dual_thres_2.")
+    do_dual_thres_calc = False
+    if dual_thres_1 is not None and dual_thres_2 is not None:
+        do_dual_thres_calc = True
+        if (
+            not 0 <= dual_thres_1 <= 1
+            and 0 <= dual_thres_2 <= 1
+            and 0 <= single_thres <= 1
+        ):
+            raise ValueError("Thresholds should be between 0 and 1.")
+        if dual_thres_1 >= dual_thres_2:
+            raise ValueError("dual_thres_1 must be less than dual_thres_2.")
     if not 1 <= diff_class_lim <= n_samples:
         raise ValueError(
             "The limit for differential classification should be"
@@ -245,10 +252,8 @@ def simulate_sampling_experiment(
     n_features, num_patients = tpm_df.shape
 
     # Single and dual threshold result variables
-    single_thres_res, dual_thres_res = (
-        SingleUncertaintyResults(),
-        SingleUncertaintyResults(),
-    )
+    single_thres_res = SingleUncertaintyResults()
+    dual_thres_res = SingleUncertaintyResults() if do_dual_thres_calc else None
 
     _means, _stds = tpm_df.mean(axis=1), tpm_df.std(axis=1)
 
@@ -321,33 +326,37 @@ def simulate_sampling_experiment(
         single_thres_res.preds_series.loc[patient_id] = preds
 
         # Dual threshold calculations
-        if y_0 < dual_thres_1:
-            dual_thres_res.gt_labels.loc[patient_id] = 0
-        elif dual_thres_1 <= y_0 < dual_thres_2:
-            dual_thres_res.gt_labels.loc[patient_id] = 1
-        else:
-            dual_thres_res.gt_labels.loc[patient_id] = 2
+        if do_dual_thres_calc:
+            gt_arr = (
+                np.ones(n_samples, dtype=np.int64)
+                * dual_thres_res.gt_labels.loc[patient_id]
+            )
 
-        preds = np.zeros(n_samples, dtype=np.int64)
-        preds[(dual_thres_1 <= probs) & (probs < dual_thres_2)] = 1
-        preds[probs >= dual_thres_2] = 2
+            if y_0 < dual_thres_1:
+                dual_thres_res.gt_labels.loc[patient_id] = 0
+            elif dual_thres_1 <= y_0 < dual_thres_2:
+                dual_thres_res.gt_labels.loc[patient_id] = 1
+            else:
+                dual_thres_res.gt_labels.loc[patient_id] = 2
 
-        if np.sum(preds != dual_thres_res.gt_labels.loc[patient_id]) >= diff_class_lim:
-            dual_thres_res.pred_labels.loc[patient_id] = st.mode(
-                preds[preds != dual_thres_res.gt_labels.loc[patient_id]]
-            )[0]
-        else:
-            dual_thres_res.pred_labels.loc[patient_id] = dual_thres_res.gt_labels.loc[
-                patient_id
-            ]
+            preds = np.zeros(n_samples, dtype=np.int64)
+            preds[(dual_thres_1 <= probs) & (probs < dual_thres_2)] = 1
+            preds[probs >= dual_thres_2] = 2
 
-        gt_arr = (
-            np.ones(n_samples, dtype=np.int64)
-            * dual_thres_res.gt_labels.loc[patient_id]
-        )
+            if (
+                np.sum(preds != dual_thres_res.gt_labels.loc[patient_id])
+                >= diff_class_lim
+            ):
+                dual_thres_res.pred_labels.loc[patient_id] = st.mode(
+                    preds[preds != dual_thres_res.gt_labels.loc[patient_id]]
+                )[0]
+            else:
+                dual_thres_res.pred_labels.loc[patient_id] = (
+                    dual_thres_res.gt_labels.loc[patient_id]
+                )
 
-        dual_thres_res.gt_series.loc[patient_id] = gt_arr
-        dual_thres_res.preds_series.loc[patient_id] = preds
+            dual_thres_res.gt_series.loc[patient_id] = gt_arr
+            dual_thres_res.preds_series.loc[patient_id] = preds
 
     lin_scores_all = np.hstack(pred_linear_scores)
     pred_probs_all = np.hstack(pred_probs)
@@ -369,8 +378,8 @@ def simulate_multiple_uncertainties(
     sampler: Callable[[float, float, int], NumpyFloat32Array1D],
     uncertainties: list[int | float],
     *,
-    thres_low: float,
-    thres_high: float,
+    thres_low: float | None,
+    thres_high: float | None,
     single_thres: float,
     coefficients: pd.Series,
     diff_class_lim: int,
@@ -435,6 +444,9 @@ def simulate_multiple_uncertainties(
         )
         for worker_id, uncertainty in enumerate(uncertainties)
     )
+    do_dual_thres_sim = False
+    if thres_low is not None and thres_high is not None:
+        do_dual_thres_sim = True
     for uncertainty, output in zip(uncertainties, outputs):
         (
             single_thres_res,
@@ -451,19 +463,23 @@ def simulate_multiple_uncertainties(
             single_thres_res.gt_series,
             single_thres_res.preds_series,
         )
-        (
-            res.dual_thres_gt_series[uncertainty],
-            res.dual_thres_pred_series[uncertainty],
-        ) = (
-            dual_thres_res.gt_series,
-            dual_thres_res.preds_series,
-        )
+
         res.single_thres_pred_labels[uncertainty] = single_thres_res.pred_labels
-        res.dual_thres_pred_labels[uncertainty] = dual_thres_res.pred_labels
         if res.single_thres_gt_labels is None:
             res.single_thres_gt_labels = single_thres_res.gt_labels
-        if res.dual_thres_gt_labels is None:
-            res.dual_thres_gt_labels = dual_thres_res.gt_labels
+
+        if do_dual_thres_sim:
+            res.dual_thres_pred_labels[uncertainty] = dual_thres_res.pred_labels
+            (
+                res.dual_thres_gt_series[uncertainty],
+                res.dual_thres_pred_series[uncertainty],
+            ) = (
+                dual_thres_res.gt_series,
+                dual_thres_res.preds_series,
+            )
+            if res.dual_thres_gt_labels is None:
+                res.dual_thres_gt_labels = dual_thres_res.gt_labels
+
         res.lin_score_arrs[uncertainty], res.pred_prob_arrs[uncertainty] = (
             lin_scores,
             pred_probs,

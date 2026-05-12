@@ -998,7 +998,7 @@ def plot_differential_classification_results(
             if labels_dict_single_thres[label] == labels_dict_dual_thres[label]:
                 continue
             raise ValueError(
-                    f"Difference in linestyle between single and dual threshold plots for label '{label}'"
+                f"Difference in linestyle between single and dual threshold plots for label '{label}'"
             )
     nrows, ncols = 1, 1
     fig, _ = plt.subplots(

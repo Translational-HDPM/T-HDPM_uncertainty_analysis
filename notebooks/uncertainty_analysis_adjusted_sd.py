@@ -347,9 +347,11 @@ def _(collapse_replicates_by, pathos_1, patients_df):
     elif collapse_replicates_by == "replicate 2":
         patients_df_1 = (
             _grouped.apply(
-                lambda x: x[x.index.str.endswith("r2")]
-                if len(x) > 1
-                else x[x.index.str.endswith("r1")]
+                lambda x: (
+                    x[x.index.str.endswith("r2")]
+                    if len(x) > 1
+                    else x[x.index.str.endswith("r1")]
+                )
             )
             .reset_index()
             .drop(columns=["level_1"])
@@ -866,8 +868,8 @@ def _(
         patients_df_2,
         sampler_gaussian,
         uncertainties,
-        thres_low=0.1,
-        thres_high=0.9,
+        thres_low=None,
+        thres_high=None,
         single_thres=single_thres,
         coefficients=coefficients_1,
         diff_class_lim=int(0.1 * n_samples),
