@@ -163,7 +163,7 @@ def _(mo):
     1. **Mean TPM**: When we filter genes for analysis with a reduced feature set, we drop genes for which the mean TPM is below this cutoff. (details included later)
     2. **Range of percent uncertainty values to simulate**: List of values taken from literature reported studies representing different overall noise scenario, used as a percentage to scale the baseline technical standard deviation calculated from the TPM value.
     3. **Number of samples**: Number of Monte Carlo samples to simulate for each subject
-    4. **How to aggregate replicates**: How to aggregate TPM values from multiple technical replicates for a given subject. Default is "average", i.e. the average of multiple TPM values will be taken.
+    4. **How to aggregate replicates**: How to aggregate TPM values from multiple technical replicates for a given subject. Default is "replicate 1", i.e. the replicate 1 value will be taken. (for "replicate 2", replicate 2 values will be taken wherever present, else the replicate 1 value is considered.)
     """)
     return
 
@@ -280,7 +280,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo, patients_df, patients_df_2):
     mo.md(rf"""
-    The raw dataset contains gene expression data in the form of TPM values for subjects (including technical replicates), along with the coefficients of the classifier. In addition, we also utilize original disease categories (pathology) that the patients belong to. The dataset contains technical replicates for a subset ({patients_df.shape[1] - patients_df_2.shape[1]} samples) of {patients_df.shape[1]} biological samples. For this analysis, these technical replicates were averaged to create a single expression profile per biological subject. Our subsequent simulation aims to re-introduce a plausible model of this technical variability.
+    The raw dataset contains gene expression data in the form of TPM values for subjects (including technical replicates), along with the coefficients of the classifier. In addition, we also utilize original disease categories (pathology) that the patients belong to. The dataset contains technical replicates for a subset ({patients_df.shape[1] - patients_df_2.shape[1]} samples) of {patients_df.shape[1]} biological samples. For this analysis, the technical replicate 1 value was considered to create a single expression profile per biological subject. Our subsequent simulation aims to re-introduce a plausible model of this technical variability.
     """)
     return
 
@@ -413,7 +413,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used. The objective of removing genes is to filter out any genes with low TPM values that affect the predictions of the classifier by adding noise.
+    When analysing a dataset with a reduced set of genes, we keep the genes where the mean TPM value (across all subjects) is above the specified cutoff. If the `mean_TPM` value is set to zero, no genes are filtered and the entire dataset is used. The objective of removing genes is to filter out any genes with low TPM values that affect the predictions of the classifier by adding noise.
     """)
     return
 
@@ -536,7 +536,7 @@ def _(ad_sens_spec_df, nci_sens_spec_df, plt, sns):
     _fig.text(0.5, 0.05, "Probability threshold", ha="center", va="center")
     _fig.text(0.08, 0.35, "Sensitivity/Specificity", rotation="vertical")
     _fig.suptitle(
-        "Figure 1. Sensitivity and specificity versus probability threshold curves for AD and NCI categories."
+        "Sensitivity and specificity versus probability threshold curves for AD and NCI categories."
     )
     return
 
@@ -680,7 +680,7 @@ def _(mo):
     mo.md(r"""
     We follow established guidance by the FDA ([Ovarian Adnexal Mass Assessment Score system (2011)](https://www.fda.gov/medical-devices/guidance-documents-medical-devices-and-radiation-emitting-products/ovarian-adnexal-mass-assessment-score-test-system-class-ii-special-controls-guidance-industry-and)) in simulating technical variation in the TPM values. The specific steps as mentioned in the guidance are as follows (for sake of simplicity, consider two individual analytes $X_1$ and $X_2$ with $Score = F(X_1, X_2)$ and repeatability precision data):
 
-    1. Provide repeatability precision results (mean value, standard deviation (SD), and percentage coefficient of variation (%CV)) from previously performed precision studies and from the precision studies for the Score. Using these data, construct repeatability precision profiles for $X_1$ and $X_2$ by linear interpolation.
+    1. Provide repeatability precision results (mean value, standard deviation ($SD$), and percentage coefficient of variation (%$CV$)) from previously performed precision studies and from the precision studies for the Score. Using these data, construct repeatability precision profiles for $X_1$ and $X_2$ by linear interpolation.
 
     2. Consider a combination of two analytes with values $X_1 = U$ and $X_2 = V$. Using repeatability precision profiles, obtain $SD_1 (U)$ for $X_1 = U$ and $SD_2 (V)$ for $X_2 = V$.
 
@@ -903,17 +903,6 @@ def _(ad_spec, plot_differential_classification_results, res, uncertainties):
         + f" ({min(uncertainties)}-{max(uncertainties)}%)",
         y_lim_low=0.0,
         y_lim_high=12.0,
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(res):
-    print(
-        "NCI = ",
-        (res.single_thres_gt_labels == 0).sum(),
-        "AD = ",
-        (res.single_thres_gt_labels == 1).sum(),
     )
     return
 
@@ -1161,8 +1150,6 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     - RNA-Seq Measurement Uncertainty impacts differential classification predominantly at the classifier threshold. (Ref. Figure 4)
-    - Filtering out genes with low mean TPMs decreases the percentage of both AD and NCI subjects whose diagnostic classification changes when at least 10% of simulations mismatch. (Ref. Figure 2 and 3)
-    - These low-expression genes are a source of classification instability under uncertainty which need to be taken into account when building diagnostic classifications. (Ref. Figure 4)
     - For a diagnostic classifier with two thresholds, (Ref. Figure 4)
         - An initial lab result might suggest a wait and watch approach.
         - The demonstration of near-certain reclassification under typical measurement noise for this specific patient's result acts like a diagnostic stress test (i.e revealing high instability).
