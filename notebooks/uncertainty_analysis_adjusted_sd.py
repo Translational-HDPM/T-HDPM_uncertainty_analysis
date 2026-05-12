@@ -347,9 +347,11 @@ def _(collapse_replicates_by, pathos_1, patients_df):
     elif collapse_replicates_by == "replicate 2":
         patients_df_1 = (
             _grouped.apply(
-                lambda x: x[x.index.str.endswith("r2")]
-                if len(x) > 1
-                else x[x.index.str.endswith("r1")]
+                lambda x: (
+                    x[x.index.str.endswith("r2")]
+                    if len(x) > 1
+                    else x[x.index.str.endswith("r1")]
+                )
             )
             .reset_index()
             .drop(columns=["level_1"])
@@ -866,8 +868,8 @@ def _(
         patients_df_2,
         sampler_gaussian,
         uncertainties,
-        thres_low=0.1,
-        thres_high=0.9,
+        thres_low=None,
+        thres_high=None,
         single_thres=single_thres,
         coefficients=coefficients_1,
         diff_class_lim=int(0.1 * n_samples),
@@ -890,13 +892,13 @@ def _(mo):
 def _(ad_spec, plot_differential_classification_results, res, uncertainties):
     plot_differential_classification_results(
         labels_dict_single_thres={"NCI": "b", "AD": "g"},
-        labels_dict_dual_thres={"NCI": "b", "Intermediate": "r", "AD": "g"},
+        labels_dict_dual_thres=None,
         gt_labels_single_thres=res.single_thres_gt_labels,
-        gt_labels_dual_thres=res.dual_thres_gt_labels,
+        gt_labels_dual_thres=None,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
-        pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
+        pred_labels_dict_dual_thres=None,
         single_thres_plot_title=f"Single threshold, specificity: {ad_spec:.2f} % AD",
-        dual_thres_plot_title="",
+        dual_thres_plot_title=None,
         figure_title="Differential classification for levels of uncertainty"
         + f" ({min(uncertainties)}-{max(uncertainties)}%)",
         y_lim_low=0.0,
@@ -946,13 +948,13 @@ def _(mo):
 def _(ad_spec, plot_jaccard_index_plot, res, uncertainties):
     plot_jaccard_index_plot(
         labels_dict_single_thres={"NCI": "b", "AD": "g"},
-        labels_dict_dual_thres={"NCI": "b", "Intermediate": "r", "AD": "g"},
+        labels_dict_dual_thres=None,
         gt_labels_single_thres=res.single_thres_gt_labels,
-        gt_labels_dual_thres=res.dual_thres_gt_labels,
+        gt_labels_dual_thres=None,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
-        pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
+        pred_labels_dict_dual_thres=None,
         single_thres_plot_title=f"Single threshold, specificity: {ad_spec:.2f} % AD",
-        dual_thres_plot_title="",
+        dual_thres_plot_title=None,
         figure_title="Jaccard index plot showing differential classification\n"
         + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %)",
         y_lim_low=0.8,

@@ -784,13 +784,13 @@ def calculate_jaccard_index(
 def plot_jaccard_index_plot(
     *,
     labels_dict_single_thres: dict[str, str],
-    labels_dict_dual_thres: dict[str, str],
+    labels_dict_dual_thres: Optional[dict[str, str]],
     gt_labels_single_thres: pd.Series,
-    gt_labels_dual_thres: pd.Series,
+    gt_labels_dual_thres: Optional[pd.Series],
     pred_labels_dict_single_thres: dict[int, pd.Series],
-    pred_labels_dict_dual_thres: dict[int, pd.Series],
+    pred_labels_dict_dual_thres: Optional[dict[int, pd.Series]],
     single_thres_plot_title: str,
-    dual_thres_plot_title: str,
+    dual_thres_plot_title: Optional[str],
     figure_title: str,
     save: bool = False,
     y_lim_low: float | None = None,
@@ -851,12 +851,16 @@ def plot_jaccard_index_plot(
     --------
     calculate_jaccard_index : The function used to compute the Jaccard scores.
     """
-    for label in labels_dict_single_thres:
-        if labels_dict_single_thres[label] != labels_dict_dual_thres[label]:
+    if labels_dict_dual_thres is not None:
+        for label in labels_dict_single_thres:
+            if labels_dict_single_thres[label] == labels_dict_dual_thres[label]:
+                continue
             raise ValueError(
                 f"Difference in linestyle between single and dual threshold plots for label '{label}'"
             )
     nrows, ncols = 1, 1
+    if gt_labels_dual_thres is not None:
+        ncols += 1
     fig, axs = plt.subplots(
         figsize=(8, 7), nrows=nrows, ncols=ncols, sharex=True, sharey=True
     )
@@ -879,21 +883,22 @@ def plot_jaccard_index_plot(
         plt.ylim(y_lim_low, y_lim_high)
     plt.title(single_thres_plot_title)
 
-    # plt.subplot(nrows, ncols, 2)
-    # jac_idx_df = calculate_jaccard_index(
-    #     labels=list(labels_dict_dual_thres.keys()),
-    #     gt_labels=gt_labels_dual_thres,
-    #     pred_labels_dict=pred_labels_dict_dual_thres,
-    # )
-    # x_vals = np.sort(jac_idx_df.index.values)
-    # for col in jac_idx_df.columns:
-    #     plt.plot(
-    #         x_vals,
-    #         jac_idx_df.loc[x_vals, col],
-    #         label=col,
-    #         color=labels_dict_dual_thres[col],
-    #     )
-    # plt.title(dual_thres_plot_title)
+    if gt_labels_dual_thres is not None:
+        plt.subplot(nrows, ncols, 2)
+        jac_idx_df = calculate_jaccard_index(
+            labels=list(labels_dict_dual_thres.keys()),
+            gt_labels=gt_labels_dual_thres,
+            pred_labels_dict=pred_labels_dict_dual_thres,
+        )
+        x_vals = np.sort(jac_idx_df.index.values)
+        for col in jac_idx_df.columns:
+            plt.plot(
+                x_vals,
+                jac_idx_df.loc[x_vals, col],
+                label=col,
+                color=labels_dict_dual_thres[col],
+            )
+        plt.title(dual_thres_plot_title)
     fig.text(
         0.05,
         0.5,
@@ -920,13 +925,13 @@ def plot_jaccard_index_plot(
 def plot_differential_classification_results(
     *,
     labels_dict_single_thres: dict[str, str],
-    labels_dict_dual_thres: dict[str, str],
+    labels_dict_dual_thres: Optional[dict[str, str]],
     gt_labels_single_thres: pd.Series,
-    gt_labels_dual_thres: pd.Series,
+    gt_labels_dual_thres: Optional[pd.Series],
     pred_labels_dict_single_thres: dict[int, pd.Series],
-    pred_labels_dict_dual_thres: dict[int, pd.Series],
+    pred_labels_dict_dual_thres: Optional[dict[int, pd.Series]],
     single_thres_plot_title: str,
-    dual_thres_plot_title: str,
+    dual_thres_plot_title: Optional[str],
     figure_title: str,
     save: bool = False,
     y_lim_low: float | None = None,
@@ -988,8 +993,10 @@ def plot_differential_classification_results(
     --------
     get_differential_classification : Calculates the underlying data for the plots.
     """
-    for label in labels_dict_single_thres:
-        if labels_dict_single_thres[label] != labels_dict_dual_thres[label]:
+    if labels_dict_dual_thres is not None:
+        for label in labels_dict_single_thres:
+            if labels_dict_single_thres[label] == labels_dict_dual_thres[label]:
+                continue
             raise ValueError(
                 f"Difference in linestyle between single and dual threshold plots for label '{label}'"
             )
@@ -998,24 +1005,29 @@ def plot_differential_classification_results(
         figsize=(9, 7), nrows=nrows, ncols=ncols, sharex=True, sharey=True
     )
 
-    # scenarios = ["single threshold", "dual threshold"]
     scenarios = ["single threshold"]
+    plot_info = [
+        (
+            labels_dict_single_thres,
+            gt_labels_single_thres,
+            pred_labels_dict_single_thres,
+            single_thres_plot_title,
+        )
+    ]
+    if gt_labels_dual_thres is not None:
+        ncols += 1
+        plot_info.append(
+            (
+                labels_dict_dual_thres,
+                gt_labels_dual_thres,
+                pred_labels_dict_dual_thres,
+                dual_thres_plot_title,
+            )
+        )
+        scenarios.append("dual threshold")
     label_counts_dict = dict.fromkeys(scenarios)
     for i, (labels_dict, gt_labels, pred_labels_dict, plot_title) in enumerate(
-        [
-            (
-                labels_dict_single_thres,
-                gt_labels_single_thres,
-                pred_labels_dict_single_thres,
-                single_thres_plot_title,
-            ),
-            # (
-            #     labels_dict_dual_thres,
-            #     gt_labels_dual_thres,
-            #     pred_labels_dict_dual_thres,
-            #     dual_thres_plot_title,
-            # ),
-        ]
+        plot_info
     ):
         plt.subplot(nrows, ncols, i + 1)
         label_counts_dict[scenarios[i]] = {
