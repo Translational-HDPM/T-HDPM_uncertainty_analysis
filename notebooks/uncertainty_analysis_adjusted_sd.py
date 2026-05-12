@@ -890,13 +890,13 @@ def _(mo):
 def _(ad_spec, plot_differential_classification_results, res, uncertainties):
     plot_differential_classification_results(
         labels_dict_single_thres={"NCI": "b", "AD": "g"},
-        labels_dict_dual_thres={"NCI": "b", "Intermediate": "r", "AD": "g"},
+        labels_dict_dual_thres=None,
         gt_labels_single_thres=res.single_thres_gt_labels,
-        gt_labels_dual_thres=res.dual_thres_gt_labels,
+        gt_labels_dual_thres=None,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
-        pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
+        pred_labels_dict_dual_thres=None,
         single_thres_plot_title=f"Single threshold, specificity: {ad_spec:.2f} % AD",
-        dual_thres_plot_title="",
+        dual_thres_plot_title=None,
         figure_title="Differential classification for levels of uncertainty"
         + f" ({min(uncertainties)}-{max(uncertainties)}%)",
         y_lim_low=0.0,
@@ -946,13 +946,13 @@ def _(mo):
 def _(ad_spec, plot_jaccard_index_plot, res, uncertainties):
     plot_jaccard_index_plot(
         labels_dict_single_thres={"NCI": "b", "AD": "g"},
-        labels_dict_dual_thres={"NCI": "b", "Intermediate": "r", "AD": "g"},
+        labels_dict_dual_thres=None,
         gt_labels_single_thres=res.single_thres_gt_labels,
-        gt_labels_dual_thres=res.dual_thres_gt_labels,
+        gt_labels_dual_thres=None,
         pred_labels_dict_single_thres=res.single_thres_pred_labels,
-        pred_labels_dict_dual_thres=res.dual_thres_pred_labels,
+        pred_labels_dict_dual_thres=None,
         single_thres_plot_title=f"Single threshold, specificity: {ad_spec:.2f} % AD",
-        dual_thres_plot_title="",
+        dual_thres_plot_title=None,
         figure_title="Jaccard index plot showing differential classification\n"
         + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %)",
         y_lim_low=0.8,
