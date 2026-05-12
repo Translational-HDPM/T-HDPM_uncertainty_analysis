@@ -285,29 +285,21 @@ def _(mo, patients_df, patients_df_2):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(Path, pd):
     raw_data, pathos = None, None
-    using_dummy_data = False  # Whether using a dummy dataset
-    data_root = Path(__file__).parent.parent.parent / "raw_data"
-    if data_root.exists():
-        raw_data = pd.read_excel(
-            data_root / "ClusterMarkers_1819ADcohort.congregated_DR.xlsx",
-            sheet_name=1,
-        )
-        pathos = pd.read_excel(
-            data_root / "ClusterMarkers_1819ADcohort.congregated_DR.xlsx",
-            sheet_name=0,
-        )
-        pathos = pathos.set_index("Isolate ID")
-        raw_data = raw_data.set_index("gene_id")
-    else:
-        # Use dummy data if actual dataset is not available
-        using_dummy_data = True
-        data_root = Path(__file__).parent.parent / "dummy_data"
-        raw_data = pd.read_csv(data_root / "tpm_expression_data.csv")
-        pathos = pd.read_csv(data_root / "disease_status_data.csv")
-    return pathos, raw_data, using_dummy_data
+    data_root = Path(__file__).parent.parent / "data"
+    raw_data = pd.read_excel(
+        data_root / "raw_data.xlsx",
+        sheet_name=1,
+    )
+    pathos = pd.read_excel(
+        data_root / "raw_data.xlsx",
+        sheet_name=0,
+    )
+    pathos = pathos.set_index("Isolate ID")
+    raw_data = raw_data.set_index("gene_id")
+    return pathos, raw_data
 
 
 @app.cell(hide_code=True)
@@ -604,11 +596,10 @@ def _(
     np,
     single_threshold_slider,
     use_youdens_index_for_threshold_switch,
-    using_dummy_data,
 ):
     single_thres = 0.03
     if use_youdens_index_for_threshold_switch.value:
-        _precision = 0 if using_dummy_data else 2
+        _precision = 2
         _rounded_sens = ad_sens_spec_df["sensitivity"].apply(
             lambda x: np.round(x, _precision)
         )
