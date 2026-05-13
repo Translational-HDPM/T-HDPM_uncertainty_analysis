@@ -849,7 +849,7 @@ def _(NumpyFloat32Array1D, calculate_scaled_sd, np):
         rng = np.random.default_rng(seed)
         return rng.normal(tpm, baseline_rsd * tpm, n_points)
 
-    return (sampler_gaussian,)
+    return (sampler,)
 
 
 @app.cell(hide_code=True)
@@ -859,14 +859,14 @@ def _(
     n_samples,
     num_parallel_workers,
     patients_df_2,
-    sampler_gaussian,
+    sampler,
     simulate_multiple_uncertainties,
     single_thres,
     uncertainties,
 ):
     res = simulate_multiple_uncertainties(
         patients_df_2,
-        sampler_gaussian,
+        sampler,
         uncertainties,
         thres_low=None,
         thres_high=None,
@@ -902,7 +902,7 @@ def _(ad_spec, plot_differential_classification_results, res, uncertainties):
         figure_title="Differential classification for levels of uncertainty"
         + f" ({min(uncertainties)}-{max(uncertainties)}%)",
         y_lim_low=0.0,
-        y_lim_high=12.0,
+        y_lim_high=26.0,
     )
     return
 
@@ -946,7 +946,7 @@ def _(ad_spec, plot_jaccard_index_plot, res, uncertainties):
         dual_thres_plot_title=None,
         figure_title="Jaccard index plot showing differential classification\n"
         + f" for levels of uncertainty ({min(uncertainties)}-{max(uncertainties)} %)",
-        y_lim_low=0.8,
+        y_lim_low=0.0,
         y_lim_high=1.0,
     )
     return

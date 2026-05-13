@@ -1057,7 +1057,7 @@ def plot_differential_classification_results(
     )
     fig.text(0.5, 0.05, "Pct. uncertainty", va="center", ha="center")
     fig.text(
-        0.09,
+        0.07,
         0.5,
         "Percent of subjects within category differentially classified",
         va="center",
