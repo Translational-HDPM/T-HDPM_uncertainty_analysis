@@ -14,7 +14,6 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _():
-    import os
     import random
     import sys
     from pathlib import Path
@@ -32,12 +31,12 @@ def _():
     from src.dtypes import NumpyFloat32Array1D
     from src.postprocessing import plot_bland_altman
 
-    return NumpyFloat32Array1D, np, pd, plot_bland_altman
+    return NumpyFloat32Array1D, np, pd, plot_bland_altman, plt
 
 
 @app.cell(hide_code=True)
 def _(Path, pd):
-    raw_data, pathos = None, None
+    raw_data = None
     data_root = Path(__file__).parent.parent / "data"
     raw_data = pd.read_excel(
         data_root / "raw_data.xlsx",
@@ -48,9 +47,8 @@ def _(Path, pd):
 
 
 @app.cell(hide_code=True)
-def _(np, raw_data):
+def _(raw_data):
     patients_df = raw_data[~raw_data.loc[:, "Coeff"].isnull()]
-    coefficients = np.nan_to_num(np.array(patients_df.loc[:, "Coeff"]))
     patients_df = patients_df.filter(regex="^\\d+")
     return (patients_df,)
 
@@ -111,11 +109,12 @@ def _(NumpyFloat32Array1D, np):
         scaled_pct_sd = scaling_factor * uncertainty_pct * sigma
         return scaled_pct_sd / 100
 
+
     def sampler(
+        rng: np.random.Generator,
         tpm: float,
         baseline_rsd: float,
         n_points: int = 1000,
-        seed: int | None = None,
     ) -> NumpyFloat32Array1D:
         """
         Function to generate Monte Carlo TPM samples given a TPM value and a
@@ -123,6 +122,8 @@ def _(NumpyFloat32Array1D, np):
 
         Parameters
         ----------
+        rng
+            Random number generator.
         tpm
             TPM value to generate simulated TPM values from.
         baseline_rsd
@@ -130,104 +131,102 @@ def _(NumpyFloat32Array1D, np):
             TPM values. Must be between 0 and 1.
         n_points
             Number of simulated TPM values to generate. Defaults to 1000.
-        seed
-            Seed for random number generator. Default is None.
 
         Returns
         -------
         np.ndarray[tuple[int], np.dtype[np.float32]]
             1D numpy array of floating point values representing TPM samples.
         """
-        rng = np.random.default_rng(seed)
         scaled_sd = calculate_scaled_sd(tpm, baseline_rsd * 100)
         return np.pow(2.0, rng.normal(np.log2(tpm + 1), scaled_sd, n_points))
-
-    def sampler_gaussian(
-        tpm: float,
-        baseline_rsd: float,
-        n_points: int = 1000,
-        seed: int | None = None,
-    ) -> NumpyFloat32Array1D:
-        """
-        Function to generate Monte Carlo TPM samples given a TPM value and a
-        baseline uncertainty value.
-
-        Parameters
-        ----------
-        tpm
-            TPM value to generate simulated TPM values from.
-        baseline_rsd
-            Reference uncertainty value. Must be between 0 and 1.
-        n_points
-            Number of simulated TPM values to generate. Defaults to 1000.
-        seed
-            Seed for random number generator. Default is None.
-
-        Returns
-        -------
-        np.ndarray[tuple[int], np.dtype[np.float32]]
-            1D numpy array of floating point values representing TPM samples.
-        """
-        rng = np.random.default_rng(seed)
-        return rng.normal(tpm, baseline_rsd * tpm, n_points)
 
     return (sampler,)
 
 
 @app.cell
-def _(patient_ids_with_replicates, random):
-    pct_uncertainty = 25
+def _(np, patient_ids_with_replicates, random):
+    uncertainties = [5, 20, 35]
     master_seed = 123
     patient_idx = random.choice(patient_ids_with_replicates)
-    return master_seed, patient_idx, pct_uncertainty
+    rng = np.random.default_rng(seed=master_seed)
+    return patient_idx, rng, uncertainties
 
 
 @app.cell
-def _(patient_idx, patients_df, plot_bland_altman):
+def _(patient_idx, patients_df):
     rep_1, rep_2 = (
         patients_df.loc[:, f"{patient_idx}-r1"].values,
         patients_df.loc[:, f"{patient_idx}-r2"],
     )
-    plot_bland_altman(
-        rep_1,
-        rep_2,
-        title=f"Bland-Altman plot for technical replicates for subject {patient_idx}",
-    )
     return rep_1, rep_2
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
-    master_seed,
     np,
     patient_idx,
-    pct_uncertainty,
     plot_bland_altman,
+    plt,
     rep_1,
     rep_2,
+    rng,
     sampler,
+    uncertainties,
 ):
-    rng = np.random.default_rng(seed=master_seed)
-    seed_1, seed_2 = rng.integers(25536), rng.integers(25536)
+    seed_1, seed_2 = rng.integers(25536, size=2)
 
-    sim_rep_1 = np.hstack(
-        [
-            sampler(tpm, baseline_rsd=pct_uncertainty / 100, n_points=1, seed=seed_1)
-            for tpm in rep_1
-        ]
+    fig, axs = plt.subplots(
+        1, len(uncertainties) + 1, sharex=True, sharey=True, figsize=(15, 8)
     )
-    sim_rep_2 = np.hstack(
-        [
-            sampler(tpm, baseline_rsd=pct_uncertainty / 100, n_points=1, seed=seed_2)
-            for tpm in rep_2
-        ]
-    )
+    y_min, y_max = float("inf"), float("-inf")
 
-    plot_bland_altman(
-        sim_rep_1,
-        sim_rep_2,
-        title=f"Bland-Altman plot for simulated replicates for subject {patient_idx}\n at {pct_uncertainty}% uncertainty",
+    plt.sca(axs[0])
+    plot_bland_altman(rep_1, rep_2, title="Technical replicates", show=False)
+    plt.xlabel("")
+    plt.ylabel("")
+    y_min_curr, y_max_curr = plt.ylim()
+    y_min = min(y_min, y_min_curr)
+    y_max = max(y_max, y_max_curr)
+    plt.legend(loc="upper right")
+
+    for i, pct_uncertainty in enumerate(uncertainties):
+        rng_1 = np.random.default_rng(seed_1)
+        rng_2 = np.random.default_rng(seed_2)
+        sim_rep_1 = np.hstack(
+            [
+                sampler(rng_1, tpm, baseline_rsd=pct_uncertainty / 100, n_points=1)
+                for tpm in rep_1
+            ]
+        )
+        sim_rep_2 = np.hstack(
+            [
+                sampler(rng_2, tpm, baseline_rsd=pct_uncertainty / 100, n_points=1)
+                for tpm in rep_1
+            ]
+        )
+
+        plt.sca(axs[i + 1])
+        plot_bland_altman(
+            sim_rep_1,
+            sim_rep_2,
+            title=f"{pct_uncertainty}% uncertainty",
+            show=False,
+        )
+        plt.xlabel("")
+        plt.ylabel("")
+        y_min_curr, y_max_curr = plt.ylim()
+        y_min = min(y_min, y_min_curr)
+        y_max = max(y_max, y_max_curr)
+        plt.legend(loc="upper right")
+
+    plt.ylim([1.5 * y_min, 1.5 * y_max])
+    fig.supxlabel("Average of measurements")
+    fig.supylabel("Difference between measurements")
+    fig.suptitle(
+        f"Bland-Altman plots for technical and synthetic (simulated) replicates for subject {patient_idx}"
     )
+    plt.tight_layout()
+    plt.show()
     return
 
 
