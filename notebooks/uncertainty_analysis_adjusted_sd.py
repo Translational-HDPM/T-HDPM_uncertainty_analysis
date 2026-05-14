@@ -285,7 +285,7 @@ def _(mo, patients_df, patients_df_2):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(Path, pd):
     raw_data, pathos = None, None
     data_root = Path(__file__).parent.parent / "data"
